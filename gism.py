@@ -13,7 +13,6 @@ import sys
 import time
 import traceback
 import xmpp
-import threading
 import urllib2
 import xml.dom.minidom
 
@@ -177,7 +176,6 @@ class Transport:
 		self.jabber = jabber
 		self.domain = NAME
 		self.usercfg_load()
-		self.msglock = threading.Lock()
 #		if '~' in self.watchdir:
 #			self.watchdir = self.watchdir.replace('~', os.environ['HOME'])
 		# A list of two element lists, 1st is xmpp domain, 2nd is email domain
