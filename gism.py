@@ -168,7 +168,7 @@ class Transport:
         self.Features = {
                         'ids':[
                             {'category':'presence','type':'text','name':"Gismeteo Weather Service"}],
-                        'features':[NS_GATEWAY, NS_DISCO_INFO, NS_VERSION, NS_LAST,NS_DISCO_ITEMS]}
+                        'features':[NS_GATEWAY, NS_DISCO_INFO, NS_VERSION, NS_LAST, NS_DISCO_ITEMS, NS_SEARCH]}
                         #'features':[NS_VERSION,NS_COMMANDS,NS_GATEWAY,NS_REGISTER,NS_DISCO_INFO]}
         self.online_users = {}
 
@@ -195,8 +195,8 @@ class Transport:
 #            self.iq_time_handler(iq, 'new')
         elif ns == xmpp.NS_LAST:
             self.iq_last_handler(iq)
-#        elif ns == xmpp.NS_SEARCH:
-#            self.iq_search_handler(iq)
+        elif ns == xmpp.NS_SEARCH:
+            self.iq_search_handler(iq)
         elif ns == xmpp.NS_VERSION:
             self.iq_version_handler(iq)
 #        elif iq.getTag('vCard') and iq.getTag('vCard').getNamespace()==xmpp.NS_VCARD:
@@ -244,21 +244,23 @@ class Transport:
         repl.setPayload([query])
         self.jabber.send(repl)
 
-    def get_register_form(self, jid):
-        user = ''#'spool.Profile(jid).getUsername()'
+    def get_register_form(self):
         instr = xmpp.Node('instructions')
-        instr.setData(u"webpresence registration. Ник не заполнять, ибо костыль.")
-        #email = xmpp.Node('email')
-        nick = xmpp.Node('nick')
-        passwd = xmpp.Node('password')
-        if user:
-            reg = xmpp.Node('registered')
-            email.setData(user)
-            return [instr,reg,email,passwd]
+        instr.setData(u"Введите город для поиска")
+        city = xmpp.Node('city')
+        return [instr, city]
+
+    def set_register_form(self, iq):
+        iq_children = iq.getQueryChildren()
+        searchField = [node.getData() for node in iq_children]
+        if searchField:
+            searchField='%'+searchField[0].replace("%","\\%")+'%'
         else:
-            #email.setData('fake')
-            return [instr,nick]
-            return [instr,email]
+            return
+        if searchField=='%%' or len(searchField)<5:
+            self.send_bad_request(iq)
+            return
+        print searchField
 
     def iq_gateway_handler(self, iq):
         jid_to = iq.getTo()
@@ -282,9 +284,27 @@ class Transport:
                 repl.setQueryPayload([prompt])
                 self.jabber.send(repl)
             else:
-                self.jabber.send_bad_request(iq)
+                self.send_bad_request(iq)
         else:
-            self.jabber.send_not_implemented(iq)
+            self.send_not_implemented(iq)
+
+    def iq_search_handler(self, iq):
+        typ = iq.getType()
+        iq_children = iq.getQueryChildren()
+        if (typ=='get') and (not iq_children):
+            repl = iq.buildReply('result')
+            repl.setQueryPayload(self.get_register_form())
+            self.jabber.send(repl)
+            raise NodeProcessed
+        elif (typ=='set') and iq_children:
+            repl = iq.buildReply('result')
+            repl.setQueryPayload(self.set_register_form(iq))
+            self.jabber.send(repl)
+            raise NodeProcessed
+
+    def send_bad_request(self, iq):
+        if iq.getType() in ['set','get']:
+            self.send_error(iq,xmpp.ERR_BAD_REQUEST)
 
     def send_not_implemented(self, iq):
         if iq.getType() in ['set','get']:
@@ -298,8 +318,6 @@ class Transport:
         else:
             e.getTag('error').delChild('text')
         self.jabber.send(e)
-
-
 
     # Disco Handlers
     def xmpp_base_disco(self, con, event, type):
