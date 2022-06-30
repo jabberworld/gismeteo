@@ -13,11 +13,17 @@ import sys
 import time
 import traceback
 import xmpp
-import urllib2
 import xml.dom.minidom
 
 from xmpp.browser import *
 from xml.parsers import expat
+
+import socks
+import socket
+socks.setdefaultproxy(socks.PROXY_TYPE_SOCKS5, "127.0.0.1", 54321)
+socket.socket = socks.socksocket
+
+import urllib2
 
 config=os.path.abspath(os.path.dirname(sys.argv[0]))+'/config.xml'
 
@@ -30,8 +36,8 @@ PASSWORD = dom.getElementsByTagName("password")[0].childNodes[0].data
 
 def get_weather_g(kod, type):
 			kod=str(kod)
+			print kod
 			req = urllib2.Request(u'http://informer.gismeteo.ru/xml/'+kod+u'_1.xml',headers={'User-agent': 'Mozilla/4.0 (compatible; MSIE 5.01; Windows NT 5.0)'})
-#			req = urllib2.Request(u'http://localhost/xml/'+kod+u'_1.xml')
 			r = urllib2.urlopen(req)
 
 			global embedd
@@ -42,10 +48,6 @@ def get_weather_g(kod, type):
 
 			def start_element(name, attrs):
 				global embedd,wz,period
-#				prefix=''
-#				for x in range(embedd):
-#					prefix+='\t'
-#				print 'start_element:',prefix, name, attrs
 				embedd+=1
 				if period not in wz:
 					wz[period]={}
@@ -55,59 +57,45 @@ def get_weather_g(kod, type):
 				global embedd,period
 				embedd-=1
 				if name=='FORECAST':
-#					print 'fore'#,period
 					period+=1
 				return
-#				prefix=''
-#				for x in range(embedd):
-#					prefix+='\t'
-#				print 'end_element:',prefix, name
-#			def char_data(data):
-#				print 'char_data:', repr(data)
 
 			p = expat.ParserCreate()
 
 			p.StartElementHandler = start_element
 			p.EndElementHandler = end_element
-#			p.CharacterDataHandler = char_data
 			try:
 				p.ParseFile(r)
 			except:
-#			reply(type ,source, u'Нет данных...')
 				return None
 
 			cityname=urllib2.unquote(str(wz[0][u'TOWN'][u'sname'])).decode("cp1251")
 
-#			return
 			weather = u'Погода по г. '+cityname+u' (№'+kod+u'):'
 			weather_s = u'Погода по г. '+cityname+u' (№'+kod+u'):'
 			weather_sms =u'№'+kod+u':'
 			for period in wz:
 				pr=wz[period]
-#				try:
-				if 1:
-#					print pr.keys()
-#					print pr[u'TOWN'].keys()
-#					print pr[u'TOWN'][u'sname']
-					day = str(pr[u'FORECAST'][u'day'])
-					mounth = pr[u'FORECAST'][u'month']
-					hour = pr[u'FORECAST'][u'hour']
-					week = pr[u'FORECAST'][u'weekday']
-					cloud = pr[u'PHENOMENA'][u'cloudiness']
-					precipitation = pr[u'PHENOMENA'][u'precipitation']
-					presmax = pr[u'PRESSURE'][u'max']
-					presmin = pr[u'PRESSURE'][u'min']
-					tempmax = pr[u'TEMPERATURE'][u'max']
-					tempmin = pr[u'TEMPERATURE'][u'min']
-					heatmax = pr[u'HEAT'][u'max']
-					heatmin = pr[u'HEAT'][u'min']
-					windmin = pr[u'WIND'][u'min']
-					windmax = pr[u'WIND'][u'max']
-					winddir = pr[u'WIND'][u'direction']
-					rewmax = pr[u'RELWET'][u'max']
-					rewmin = pr[u'RELWET'][u'min']
-#				except:
-#					print 'can\'t parse'
+#				print pr.keys()
+#				print pr[u'TOWN'].keys()
+#				print pr[u'TOWN'][u'sname']
+				day = str(pr[u'FORECAST'][u'day'])
+				mounth = pr[u'FORECAST'][u'month']
+				hour = pr[u'FORECAST'][u'hour']
+				week = pr[u'FORECAST'][u'weekday']
+				cloud = pr[u'PHENOMENA'][u'cloudiness']
+				precipitation = pr[u'PHENOMENA'][u'precipitation']
+				presmax = pr[u'PRESSURE'][u'max']
+				presmin = pr[u'PRESSURE'][u'min']
+				tempmax = pr[u'TEMPERATURE'][u'max']
+				tempmin = pr[u'TEMPERATURE'][u'min']
+				heatmax = pr[u'HEAT'][u'max']
+				heatmin = pr[u'HEAT'][u'min']
+				windmin = pr[u'WIND'][u'min']
+				windmax = pr[u'WIND'][u'max']
+				winddir = pr[u'WIND'][u'direction']
+				rewmax = pr[u'RELWET'][u'max']
+				rewmin = pr[u'RELWET'][u'min']
 
 				try:
 					hour=int(hour)
@@ -176,11 +164,6 @@ class Transport:
 		self.jabber = jabber
 		self.domain = NAME
 		self.usercfg_load()
-#		if '~' in self.watchdir:
-#			self.watchdir = self.watchdir.replace('~', os.environ['HOME'])
-		# A list of two element lists, 1st is xmpp domain, 2nd is email domain
-		#self.mappings = [mapping.split('=') for mapping in config.domains]
-		#email.Charset.add_charset( 'utf-8', email.Charset.SHORTEST, None, None )
 		self.Features = {
 						'ids':[
 							{'category':'presence','type':'text','name':"Gismeteo Weather Service"}],
@@ -322,7 +305,6 @@ class Transport:
 				else:
 					pass
 
-
 	def get_register_form(self, jid):
 		user = ''#'spool.Profile(jid).getUsername()'
 		instr = xmpp.Node('instructions')
@@ -408,10 +390,8 @@ class Transport:
 		# Add ACL support
 		fromjid = event.getFrom()
 		type = event.getType()
-#		print dir(type),type
 		show = event.getShow()
 		status = event.getStatus()
-#		print dir(event)
 		to = event.getTo()
 		try:
 			print "pres===============",fromjid,to,type,show
@@ -542,7 +522,7 @@ class Transport:
 		params = params.lower().strip().split()
 		user = fromjid.getStripped().split('@'+self.domain)
 
-		if fromjid.getStripped() != 'adminko@server.tld':
+		if fromjid.getStripped() != 'someuser@linuxoid.in':
 			print fromjid.getStripped()
 			return
 
@@ -669,20 +649,17 @@ class Transport:
 						if wz: status=wz
 						else: status='<???>'
 						self.jabber.send(Presence(to=jid, frm = node, show='chat', status=status))
+						print jid
 
 		print "checked."
 
 	def xmpp_connect(self):
-		connected = self.jabber.connect((HOST, PORT))
-#		if config.dumpProtocol: print "connected:",connected
+		connected = None
 		while not connected:
-			time.sleep(5)
 			connected = self.jabber.connect((HOST, PORT))
-#			if config.dumpProtocol: print "connected:",connected
+			time.sleep(5)
 		self.register_handlers()
-#		if config.dumpProtocol: print "trying auth"
 		connected = self.jabber.auth(NAME, PASSWORD)
-#		if config.dumpProtocol: print "auth return:",connected
 		return connected
 
 	def xmpp_disconnect(self):
@@ -693,10 +670,6 @@ class Transport:
 
 def logError():
 	err = '%s - %s\n'%(time.strftime('%a %d %b %Y %H:%M:%S'), version)
-	if logfile != None:
-		logfile.write(err)
-		traceback.print_exc(file=logfile)
-		logfile.flush()
 	sys.stderr.write(err)
 	traceback.print_exc()
 	sys.exc_clear()
@@ -707,28 +680,7 @@ def sigHandler(signum, frame):
 	transport.online = 0
 
 if __name__ == '__main__':
-	#if 'PID' in os.environ:
-#		config.pid = os.environ['PID']
-#	loadConfig()
-#	if config.pid:
-#		pidfile = open(config.pid,'w')
-#		pidfile.write(`os.getpid()`)
-#		pidfile.close()
 
-#	if config.saslUsername:
-#		sasl = 1
-#	else:
-#		config.saslUsername = config.jid
-#		sasl = 0
-
-	logfile = None
-#	if config.debugFile:
-#		logfile = open(config.debugFile,'a')
-
-#	if config.dumpProtocol:
-#		debug=['always', 'nodebuilder']
-#	else:
-#		debug=[]
 	connection = xmpp.client.Component(NAME, PORT, debug=None, sasl=False, bind=False, route=False)
 	transport = Transport(connection)
 	if not transport.xmpp_connect():
@@ -751,10 +703,6 @@ if __name__ == '__main__':
 			logError()
 		if not connection.isConnected():  transport.xmpp_disconnect()
 	connection.disconnect()
-#	if config.pid:
-#		os.unlink(config.pid)
-#	if logfile:
-#		logfile.close()
 	if transport.restart:
 		args=[sys.executable]+sys.argv
 		if os.name == 'nt': args = ["\"%s\"" % a for a in args]
