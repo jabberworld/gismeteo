@@ -5,7 +5,6 @@ wz_cache = {'public':{}, 'private':{}}
 cache_ttl = 600
 wz_clients = {}
 
-global version
 version = '0.1'
 
 import os
@@ -15,12 +14,17 @@ import time
 import traceback
 import xmpp
 import xml.dom.minidom
+import sqlite3
 #import urllib2
 
 from xmpp.browser import *
 from xml.parsers import expat
 
 config=os.path.abspath(os.path.dirname(sys.argv[0]))+'/config.xml'
+citydb=os.path.abspath(os.path.dirname(sys.argv[0]))+'/city.db'
+
+con = sqlite3.connect(citydb)
+cur = con.cursor()
 
 dom = xml.dom.minidom.parse(config)
 
@@ -260,7 +264,10 @@ class Transport:
         if searchField=='%%' or len(searchField)<5:
             self.send_bad_request(iq)
             return
-        print searchField
+        data = cur.execute("SELECT * FROM cityindex WHERE country_en LIKE (?) OR country_ru LIKE (?) OR name_en LIKE (?) OR name_ru LIKE (?) OR keywords LIKE (?)", (searchField, searchField, searchField, searchField, searchField))
+        data = cur.fetchall()
+        for flds in data:
+            print flds[0]
 
     def iq_gateway_handler(self, iq):
         jid_to = iq.getTo()
