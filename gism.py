@@ -173,7 +173,6 @@ class Transport:
                         'ids':[
                             {'category':'presence','type':'text','name':"Gismeteo Weather Service"}],
                         'features':[NS_GATEWAY, NS_DISCO_INFO, NS_VERSION, NS_LAST, NS_DISCO_ITEMS, NS_SEARCH]}
-                        #'features':[NS_VERSION,NS_COMMANDS,NS_GATEWAY,NS_REGISTER,NS_DISCO_INFO]}
         self.online_users = {}
 
     def register_handlers(self):
@@ -228,8 +227,7 @@ class Transport:
 
         repl = iq.buildReply('result')
         query = xmpp.Node('query', attrs={'xmlns':xmpp.NS_VERSION})
-        query.addChild(node=name)
-        query.addChild(node=version)
+        query.addChild()
         repl.setPayload([query])
         self.jabber.send(repl)
 
@@ -266,8 +264,39 @@ class Transport:
             return
         data = cur.execute("SELECT * FROM cityindex WHERE country_en LIKE (?) OR country_ru LIKE (?) OR name_en LIKE (?) OR name_ru LIKE (?) OR keywords LIKE (?)", (searchField, searchField, searchField, searchField, searchField))
         data = cur.fetchall()
-        for flds in data:
-            print flds[0]
+
+        ## HERE
+        repl = iq.buildReply('result')
+        query = xmpp.Node('query', attrs={'xmlns':xmpp.NS_SEARCH})
+        rprt = Node('reported', payload=[
+#            DataField(label='JID'                ,name='jid'                   ,typ='jid-single'),
+#            DataField(label='Index'              ,name='idx'                   ,typ='text-single'),
+#            DataField(label='Country ru'         ,name='cru'                   ,typ='text-single'),
+#            DataField(label='Region ru'          ,name='rru'                   ,typ='text-single'),
+#            DataField(label='Country en'         ,name='cen'                   ,typ='text-single'),
+#            DataField(label='Region en'          ,name='ren'                   ,typ='text-single'),
+#            DataField(label='Name ru'            ,name='nru'                   ,typ='text-single'),
+#            DataField(label='Name en'            ,name='nen'                   ,typ='text-single'),
+#            DataField(label='Latitude'           ,name='lat'                   ,typ='text-single'),
+#            DataField(label='Longtitude'         ,name='lon'                   ,typ='text-single'),
+#            DataField(label='Altitude'           ,name='alt'                   ,typ='text-single'),
+            DataField(label='Keywords'           ,name='kwr'                   ,typ='text-single')])
+        rpl = Node('item', payload=[
+            DataField(name='kwr', value="123123")])
+
+        form = DataForm('result')
+        form.addChild(node=DataField(name='FORM_TYPE',value=NS_SEARCH, typ='hidden'))
+        form.addChild(node=rprt)
+        form.addChild(node=rpl)
+
+
+        query.addChild(node=form)
+        repl.setPayload([query])
+        self.jabber.send(repl)
+
+#        for flds in data:
+#            print flds[0]
+
 
     def iq_gateway_handler(self, iq):
         jid_to = iq.getTo()
@@ -304,9 +333,7 @@ class Transport:
             self.jabber.send(repl)
             raise NodeProcessed
         elif (typ=='set') and iq_children:
-            repl = iq.buildReply('result')
-            repl.setQueryPayload(self.set_register_form(iq))
-            self.jabber.send(repl)
+            self.set_register_form(iq)
             raise NodeProcessed
 
     def send_bad_request(self, iq):
