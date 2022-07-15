@@ -247,56 +247,74 @@ class Transport:
         self.jabber.send(repl)
 
     def get_register_form(self):
-        instr = xmpp.Node('instructions')
-        instr.setData(u"Введите город для поиска")
-        city = xmpp.Node('city')
-        return [instr, city]
+        ft = DataForm('form')
+#        instr = xmpp.Node('instructions')
+#        instr.setData(u"Введите город для поиска")
+#        city = xmpp.Node('city')
+        ft.addChild(node=DataField(name='FORM_TYPE',value=NS_SEARCH, typ='hidden'))
+#        ft.addChild(node=instr)
+#        ft.addChild(node=city)
+        ft.addChild(node=DataField(name='city', label='Город', typ='text-single'))
+        return [ft]
+#        return [city, ft]
 
     def set_register_form(self, iq):
         iq_children = iq.getQueryChildren()
-        searchField = [node.getData() for node in iq_children]
+        for nod in iq_children:
+            for k in nod.getChildren():
+                if k.getAttr('var') == 'city':
+                    for j in k.getChildren():
+                        searchField = j.getData()
         if searchField:
-            searchField='%'+searchField[0].replace("%","\\%")+'%'
+            searchField='%'+searchField.replace("%","\\%")+'%'
         else:
             return
         if searchField=='%%' or len(searchField)<5:
             self.send_bad_request(iq)
             return
-        data = cur.execute("SELECT * FROM cityindex WHERE country_en LIKE (?) OR country_ru LIKE (?) OR name_en LIKE (?) OR name_ru LIKE (?) OR keywords LIKE (?)", (searchField, searchField, searchField, searchField, searchField))
+        data = cur.execute("SELECT * FROM cityindex WHERE idx LIKE (?) OR country_en LIKE (?) OR country_ru LIKE (?) OR name_en LIKE (?) OR name_ru LIKE (?) OR keywords LIKE (?) LIMIT 100", (searchField, searchField, searchField, searchField, searchField, searchField))
         data = cur.fetchall()
+        print data
 
-        ## HERE
         repl = iq.buildReply('result')
         query = xmpp.Node('query', attrs={'xmlns':xmpp.NS_SEARCH})
         rprt = Node('reported', payload=[
-#            DataField(label='JID'                ,name='jid'                   ,typ='jid-single'),
-#            DataField(label='Index'              ,name='idx'                   ,typ='text-single'),
-#            DataField(label='Country ru'         ,name='cru'                   ,typ='text-single'),
-#            DataField(label='Region ru'          ,name='rru'                   ,typ='text-single'),
-#            DataField(label='Country en'         ,name='cen'                   ,typ='text-single'),
-#            DataField(label='Region en'          ,name='ren'                   ,typ='text-single'),
-#            DataField(label='Name ru'            ,name='nru'                   ,typ='text-single'),
-#            DataField(label='Name en'            ,name='nen'                   ,typ='text-single'),
-#            DataField(label='Latitude'           ,name='lat'                   ,typ='text-single'),
-#            DataField(label='Longtitude'         ,name='lon'                   ,typ='text-single'),
-#            DataField(label='Altitude'           ,name='alt'                   ,typ='text-single'),
-            DataField(label='Keywords'           ,name='kwr'                   ,typ='text-single')])
-        rpl = Node('item', payload=[
-            DataField(name='kwr', value="123123")])
+            DataField(label='JID'       ,name='jid'  ,typ='jid-single'),
+            DataField(label='Index'     ,name='idx'  ,typ='text-single'),
+            DataField(label='Страна'    ,name='cru'  ,typ='text-single'),
+            DataField(label='Регион'    ,name='rru'  ,typ='text-single'),
+            DataField(label='Город'     ,name='nru'  ,typ='text-single'),
+            DataField(label='Country'   ,name='cen'  ,typ='text-single'),
+            DataField(label='Region'    ,name='ren'  ,typ='text-single'),
+            DataField(label='City'      ,name='nen'  ,typ='text-single'),
+            DataField(label='Lat.'      ,name='lat'  ,typ='text-single'),
+            DataField(label='Long.'     ,name='lon'  ,typ='text-single'),
+            DataField(label='Alt.'      ,name='alt'  ,typ='text-single'),
+            DataField(label='Keywords'  ,name='kwr'  ,typ='text-single')])
 
         form = DataForm('result')
-        form.addChild(node=DataField(name='FORM_TYPE',value=NS_SEARCH, typ='hidden'))
+        form.addChild(node=DataField(name='FORM_TYPE', value=NS_SEARCH, typ='hidden'))
         form.addChild(node=rprt)
-        form.addChild(node=rpl)
 
+        for flds in data:
+            rpl = Node('item', payload=[
+                DataField(name='jid', value=JID(node=unicode(str(flds[0]), "utf-8"), domain=self.domain)),
+                DataField(name='idx', value=flds[0]),
+                DataField(name='cru', value=flds[1]),
+                DataField(name='rru', value=flds[2]),
+                DataField(name='cen', value=flds[3]),
+                DataField(name='ren', value=flds[4]),
+                DataField(name='nru', value=flds[6]),
+                DataField(name='nen', value=flds[5]),
+                DataField(name='lat', value=flds[7]),
+                DataField(name='lon', value=flds[8]),
+                DataField(name='alt', value=flds[9]),
+                DataField(name='kwr', value=flds[10])])
+            form.addChild(node=rpl)
 
         query.addChild(node=form)
         repl.setPayload([query])
         self.jabber.send(repl)
-
-#        for flds in data:
-#            print flds[0]
-
 
     def iq_gateway_handler(self, iq):
         jid_to = iq.getTo()
