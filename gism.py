@@ -1,5 +1,12 @@
 #!/usr/bin/python
 # -*- coding: utf-8 -*-
+#
+#               Python based Jabber Weather transport.
+# Copyright:	Initial version - based on code of mail transport (https://github.com/xmpppy/mail-transport) + pogoda_plugin.py from Talisman bot
+#               2022 rain from JabberWorld. JID: rain@jabberworld.info
+# Licence:      GPL v2
+# Requirements:
+#               python-xmpppy
 
 import os
 import signal
@@ -354,7 +361,7 @@ class Transport:
             searchField='%'+searchField.replace("%","\\%")+'%'
         else:
             return
-        if searchField=='%%' or len(searchField)<5:
+        if searchField=='%%' or len(searchField)<4:
             self.send_bad_request(iq)
             return
         data = cur.execute("SELECT * FROM cityindex WHERE idx LIKE (?) OR country_en LIKE (?) OR country_ru LIKE (?) OR name_en LIKE (?) OR name_ru LIKE (?) OR keywords LIKE (?) LIMIT 100", (searchField, searchField, searchField, searchField, searchField, searchField))
