@@ -127,7 +127,6 @@ def get_weather_g(kod, typ):
             print 'can\'t parse'
             pass
 
-
         months=[u'ХЗраля',u'Января',u'Февраля',u'Марта',u'Апреля',u'Мая',u'Июня',u'Июля',u'Августа',u'Сентября',u'Октября',u'Ноября',u'Декабря']
         weekdays=[u'Нулесенье 8-|',u'Воскресенье',u'Понедельник',u'Вторник',u'Среда',u'Четверг',u'Пятница',u'Суббота',u'Восьмесение О_о']
         mounth=months[int(mounth)]
@@ -170,7 +169,6 @@ def get_gism(node, short):
 
     return wz_cache[pub][code][1]
 
-
 class Transport:
     online = 1
     offlinemsg = ''
@@ -183,9 +181,22 @@ class Transport:
         self.domain = NAME
         self.Features = {
                         'ids':[
-                            {'category':'presence','type':'text','name':"Gismeteo Weather Service"}],
-                        'features':[NS_GATEWAY, NS_DISCO_INFO, NS_VERSION, NS_LAST, NS_DISCO_ITEMS, NS_SEARCH, NS_VCARD]}
-        self.online_users = {}
+                            {
+                                'category':'headline',
+                                'type':'weather',
+                                'name':"Gismeteo Weather Service"
+                                }],
+                        'features':[
+                        NS_GATEWAY,
+                        NS_DISCO_INFO,
+                        NS_VERSION,
+                        NS_LAST,
+                        NS_DISCO_ITEMS,
+                        NS_SEARCH,
+                        NS_VCARD,
+                        NS_PING,
+                        NS_URN_TIME
+                        ]}
 
     def register_handlers(self):
         self.jabber.RegisterHandler('message', self.xmpp_message)
@@ -213,22 +224,36 @@ class Transport:
             self.iq_disco_info_handler(iq)
         elif ns == xmpp.NS_DISCO_ITEMS: # to prevent error when you expand transport's tree in service browser
             self.iq_disco_items_handler(iq)
-#        elif ns == xmpp.NS_STATS:
-#            self.iq_stats_handler(iq)
+        elif iq.getTag('ping') and iq.getTag('ping').getNamespace() == xmpp.NS_PING:
+            self.iq_ping_handler(iq)
+        elif iq.getTag('time') and iq.getTag('time').getNamespace() == xmpp.NS_URN_TIME:
+            self.iq_time_handler(iq, 'new')
 #        elif ns == xmpp.NS_TIME:
 #            self.iq_time_handler(iq, 'old')
-#        elif iq.getTag('time') and iq.getTag('time').getNamespace() == xmpp.NS_NEW_TIME:
-#            self.iq_time_handler(iq, 'new')
+#        elif ns == xmpp.NS_STATS:
+#            self.iq_stats_handler(iq)
 #        elif iq.getTag('command') and iq.getTag('command').getNamespace()==xmpp.NS_COMMANDS:
 #            self.iq_command_handler(iq)
-#        elif iq.getTag('ping') and iq.getTag('ping').getNamespace() == xmpp.NS_PING:
-#            self.iq_ping_handler(iq)
 #        elif ns == xmpp.NS_REGISTER:
 #            self.iq_register_handler(iq)
 #            print "*****self.iq_register_handler(iq) exits"
         else:
             print "Not implemented namespace: ", ns
             self.send_not_implemented(iq)
+
+    def iq_time_handler(self, iq, typ):
+        repl = iq.buildReply('result')
+        query = Node('time')
+        query.setTagData(tag='tzo',    val="+02:00")
+        query.setTagData(tag='utc',    val=time.strftime('%Y-%m-%dT%H:%M:%SZ', time.gmtime()))
+        repl.setPayload([query])
+        self.jabber.send(repl)
+        raise NodeProcessed
+
+    def iq_ping_handler(self, iq):
+        repl = iq.buildReply('result')
+        self.jabber.send(repl)
+        raise NodeProcessed
 
     def iq_vcard_handler(self, iq):
         repl = iq.buildReply('result')
@@ -286,15 +311,18 @@ class Transport:
 
         repl = iq.buildReply('result')
         query = xmpp.Node('query', attrs={'xmlns':xmpp.NS_VERSION})
-        query.addChild()
+        query.addChild(node=name)
+        query.addChild(node=version)
         repl.setPayload([query])
         self.jabber.send(repl)
+        raise NodeProcessed
 
     def iq_last_handler(self, iq):
         repl = iq.buildReply('result')
         query = xmpp.Node('query', attrs={'xmlns':xmpp.NS_LAST, 'seconds': (int(time.time() - self.last))})
         repl.setPayload([query])
         self.jabber.send(repl)
+        raise NodeProcessed
 
     def iq_disco_info_handler(self, iq):
         return
@@ -304,6 +332,7 @@ class Transport:
         query = xmpp.Node('query', attrs={'xmlns':xmpp.NS_DISCO_ITEMS})
         repl.setPayload([query])
         self.jabber.send(repl)
+        raise NodeProcessed
 
     def get_register_form(self):
         ft = DataForm('form')
