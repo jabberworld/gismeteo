@@ -1,12 +1,6 @@
 #!/usr/bin/python
 # -*- coding: utf-8 -*-
 
-wz_cache = {'public':{}, 'private':{}}
-cache_ttl = 600
-wz_clients = {}
-
-version = '0.1'
-
 import os
 import signal
 import sys
@@ -16,10 +10,22 @@ import xmpp
 import xml.dom.minidom
 import sqlite3
 import re
-#import urllib2
 
 from xmpp.browser import *
 from xml.parsers import expat
+
+wz_cache = {'public':{}, 'private':{}}
+cache_ttl = 600
+version = '0.3'
+
+useproxy = 1
+proxyaddr = '127.0.0.1'
+proxyport = 54321
+
+if not useproxy:
+    import urllib2
+
+weatherlogo = 'iVBORw0KGgoAAAANSUhEUgAAACAAAAAgCAMAAABEpIrGAAADAFBMVEUAAAAXlP4Uiv8UkP4Uh/8Uhv8Ujv4LzP4MzP4M0/4Lyv8J5P4Lz/8Lzv8Vjf4Vi/4Vif4Vif4Ujf4Ui/4Uiv4Uj/4Ujf4Uk/4UkP4Tk/4Tkf4TlP4Tlv4Nwv4Nxf4Mxf4MyP4Mxv4LzP4Lyv4Lzf4MzP4L0P4Lz/4Lzv4K1P4K0v4K0f4K0P4ViP4ViP8Uiv8UjP8TjP8Uj/8Tkf8Tk/8Tlv8SmP4SmP8Smv8Rmv8Pmv8RnP8SnP8PnP8dn/E4pNY6pNQgn+4PnP4Rn/8Sn/1WrbnBw0/qyyfsyybJxUdksKoTn/kPnv8Rof8Oof9VsLzq0C7/1Rj/1Rv/1Bvw1kCKyMxoxP9ev/81r/8Tov8Qof8Qo/8apvW9zF7/2yD/2iT/2iP/2iX/5GH/8azy8cvD5/m85f+u4P9qxf8Ypv8Oov8Oo/8Rpv8Opf8zrt/m2j//4Cr/4Cv/517/9b7/9sf79cjM6vK95v+/5/9sx/8zsv8cqv8Ppf8Qpv8QqP8Op/8zsd/n4Eb/5jL/5jP/5zv/9Kj/+dL/+M/8+NHT7fPG6v/H6v/D6f+85v+75v+f3P9Mvv8RqP8Pqv8brfXA22v/7Tf/6zf/7lT/+cv/+9n/+9j2+N7U7/vP7v/Q7v/T7/9Mv/8Nqv8Qrf8NrP9ZwcHt6kr/8Vv/96n/+97//OD9++Ho9fLZ8f/c8v+m4P8ZsP8PrP8Pr/8Pr/xxy8X199D9/Ov9/On6++vu+PTi9P7i9P/j9f/O7v8vuf8Nrv8Osf8Psf8LsP9pzv/s+P3v+fvv+frq+P7q+P/r+P/s+P/V8f8vvP8Msf8PtP8Lsv971f/1+//x+v+05/8Yt/8Os/8Otv8Ltf9Fxv/j9v/2+//z+//0+//3/P/g9f9Qyv8Mtf8OuP8NuP8Quf9o0//P8P/k9v/l9//f9f+46v9QzP8Ouv8Nuv8lwf86x/87x/8zxf8Zvv8Luv8Nvf8MvP8LvP8Nv/4Nv/8Mwf8MxP8Mxv8LyP8My/8Lzf8Kz/4Kz//////VbIFxAAAALXRSTlMAAAAAAAAAAAAAAAAAABdxyPI4vvs42Re9cfrH8fHHx3H6F7042Ti++xdxyPJYUQVDAAABtElEQVR42nzGAxLDUBQAwBeOYydHqG2ljmve/xi18Xe0ABjOsBwfT3yI8xzL4BgAQQqilPxJEgWKAFpWUuk/UopMg6plEDQVdCOLYOhg5pBMsPJIFhSKSAUo3ZUrlXLpG1QvatV6o9lqd075APZVt9cfDEdjx3Vd+w14F34QRpNpNJsvlqv1xnsB24vd/qi4+ITEpOSU1LT0jMys7Gg4YMgBgdy8/ILCgqLiktKy8oryyqqq6praHAhgqAOB+obGpuYWAFPykMAAEAMAMC/vqbZt27aNrfWYItliriMSS6QyuUKhVKk1Wp2AgB4ZjCazxWqzO5wu95tH6fXRgB8FgqFwJBqLJ5JcKp3J4kCO5AvFUrlSrdW5RrPVxoAO6vb6g+FoMJ5MJ2Q2XyxxYEXWG7b9x3b7AwYcyel8ud6+7s++5OGAoSiKAuBZxekg+Hzuv5nYtm3jznayuXzhGihelcqVaq1+12i2iqVroH3T6XR7/bvBcNRpX2H8MJk+jR8wm5NmSC5ISaSWpDQse0WwLTjumuA6CHr+5i/fCyEcYVxsfxKcRcJANCaVNrv9h53RSsajOAJEXzIn7jGAuwAAAABJRU5ErkJggg=='
 
 config=os.path.abspath(os.path.dirname(sys.argv[0]))+'/config.xml'
 citydb=os.path.abspath(os.path.dirname(sys.argv[0]))+'/city.db'
@@ -34,130 +40,134 @@ HOST =  dom.getElementsByTagName("host")[0].childNodes[0].data
 PORT =  dom.getElementsByTagName("port")[0].childNodes[0].data
 PASSWORD = dom.getElementsByTagName("password")[0].childNodes[0].data
 
-def get_weather_g(kod, type):
+def get_weather_g(kod, typ):
 
-            import socks
-            import socket
-            socks.setdefaultproxy(socks.PROXY_TYPE_SOCKS5, "127.0.0.1", 54321)
-            socket.socket = socks.socksocket
+    if useproxy:
+        import socks
+        import socket
+        socks.setdefaultproxy(socks.PROXY_TYPE_SOCKS5, proxyaddr, proxyport)
+        socket.socket = socks.socksocket
+        import urllib2
 
-            import urllib2
+    kod=str(kod)
+    req = urllib2.Request(u'http://informer.gismeteo.ru/xml/'+kod+u'_1.xml',headers={'User-agent': 'Mozilla/4.0 (compatible; MSIE 5.01; Windows NT 5.0)'})
+    try:
+        r = urllib2.urlopen(req, timeout=10)
+    except:
+        r = None
 
-            kod=str(kod)
-            req = urllib2.Request(u'http://informer.gismeteo.ru/xml/'+kod+u'_1.xml',headers={'User-agent': 'Mozilla/4.0 (compatible; MSIE 5.01; Windows NT 5.0)'})
-            r = urllib2.urlopen(req, timeout=10)
+    global embedd
+    embedd=0
+    global wz,period
+    wz={}
+    period=0
 
-            global embedd
-            embedd=0
-            global wz,period
-            wz={}
-            period=0
+    def start_element(name, attrs):
+        global embedd,wz,period
+        embedd+=1
+        if period not in wz:
+            wz[period]={}
+        wz[period][name]=attrs
 
-            def start_element(name, attrs):
-                global embedd,wz,period
-                embedd+=1
-                if period not in wz:
-                    wz[period]={}
-                wz[period][name]=attrs
+    def end_element(name):
+        global embedd,period
+        embedd-=1
+        if name=='FORECAST':
+            period+=1
+        return
 
-            def end_element(name):
-                global embedd,period
-                embedd-=1
-                if name=='FORECAST':
-                    period+=1
-                return
+    p = expat.ParserCreate()
 
-            p = expat.ParserCreate()
+    p.StartElementHandler = start_element
+    p.EndElementHandler = end_element
+    try:
+        p.ParseFile(r)
+    except:
+        return None
 
-            p.StartElementHandler = start_element
-            p.EndElementHandler = end_element
-            try:
-                p.ParseFile(r)
-            except:
-                return None
+    cityname=urllib2.unquote(str(wz[0][u'TOWN'][u'sname'])).decode("cp1251")
 
-            cityname=urllib2.unquote(str(wz[0][u'TOWN'][u'sname'])).decode("cp1251")
+    weather = u'Погода по г. '+cityname+u' (№'+kod+u'):'
+    weather_s = u'Погода по г. '+cityname+u' (№'+kod+u'):'
+    weather_sms =u'№'+kod+u':'
+    for period in wz:
+        pr=wz[period]
+#         print pr.keys()
+#         print pr[u'TOWN'].keys()
+#         print pr[u'TOWN'][u'sname']
+        day = str(pr[u'FORECAST'][u'day'])
+        mounth = pr[u'FORECAST'][u'month']
+        hour = pr[u'FORECAST'][u'hour']
+        week = pr[u'FORECAST'][u'weekday']
+        cloud = pr[u'PHENOMENA'][u'cloudiness']
+        precipitation = pr[u'PHENOMENA'][u'precipitation']
+        presmax = pr[u'PRESSURE'][u'max']
+        presmin = pr[u'PRESSURE'][u'min']
+        tempmax = pr[u'TEMPERATURE'][u'max']
+        tempmin = pr[u'TEMPERATURE'][u'min']
+        heatmax = pr[u'HEAT'][u'max']
+        heatmin = pr[u'HEAT'][u'min']
+        windmin = pr[u'WIND'][u'min']
+        windmax = pr[u'WIND'][u'max']
+        winddir = pr[u'WIND'][u'direction']
+        rewmax = pr[u'RELWET'][u'max']
+        rewmin = pr[u'RELWET'][u'min']
 
-            weather = u'Погода по г. '+cityname+u' (№'+kod+u'):'
-            weather_s = u'Погода по г. '+cityname+u' (№'+kod+u'):'
-            weather_sms =u'№'+kod+u':'
-            for period in wz:
-                pr=wz[period]
-#                print pr.keys()
-#                print pr[u'TOWN'].keys()
-#                print pr[u'TOWN'][u'sname']
-                day = str(pr[u'FORECAST'][u'day'])
-                mounth = pr[u'FORECAST'][u'month']
-                hour = pr[u'FORECAST'][u'hour']
-                week = pr[u'FORECAST'][u'weekday']
-                cloud = pr[u'PHENOMENA'][u'cloudiness']
-                precipitation = pr[u'PHENOMENA'][u'precipitation']
-                presmax = pr[u'PRESSURE'][u'max']
-                presmin = pr[u'PRESSURE'][u'min']
-                tempmax = pr[u'TEMPERATURE'][u'max']
-                tempmin = pr[u'TEMPERATURE'][u'min']
-                heatmax = pr[u'HEAT'][u'max']
-                heatmin = pr[u'HEAT'][u'min']
-                windmin = pr[u'WIND'][u'min']
-                windmax = pr[u'WIND'][u'max']
-                winddir = pr[u'WIND'][u'direction']
-                rewmax = pr[u'RELWET'][u'max']
-                rewmin = pr[u'RELWET'][u'min']
-
-                try:
-                    hour=int(hour)
-                    if hour in range(0,6):
-                        hour=u'Ночь'
-                    elif  hour in range(6,12):
-                        hour=u'Утро'
-                    elif  hour in range(12,18):
-                        hour=u'День'
-                    elif  hour in range(18,24):
-                        hour=u'Вечер'
-                except:
-                    print 'can\'t parse'
-                    pass
+        try:
+            hour=int(hour)
+            if hour in range(0,6):
+                hour=u'Ночь'
+            elif  hour in range(6,12):
+                hour=u'Утро'
+            elif  hour in range(12,18):
+                hour=u'День'
+            elif  hour in range(18,24):
+                hour=u'Вечер'
+        except:
+            print 'can\'t parse'
+            pass
 
 
-                months=[u'ХЗраля',u'Января',u'Февраля',u'Марта',u'Апреля',u'Мая',u'Июня',u'Июля',u'Августа',u'Сентября',u'Октября',u'Ноября',u'Декабря']
-                weekdays=[u'Нулесенье 8-|',u'Воскресенье',u'Понедельник',u'Вторник',u'Среда',u'Четверг',u'Пятница',u'Суббота',u'Восьмесение О_о']
-                mounth=months[int(mounth)]
-                week=weekdays[int(week)]
+        months=[u'ХЗраля',u'Января',u'Февраля',u'Марта',u'Апреля',u'Мая',u'Июня',u'Июля',u'Августа',u'Сентября',u'Октября',u'Ноября',u'Декабря']
+        weekdays=[u'Нулесенье 8-|',u'Воскресенье',u'Понедельник',u'Вторник',u'Среда',u'Четверг',u'Пятница',u'Суббота',u'Восьмесение О_о']
+        mounth=months[int(mounth)]
+        week=weekdays[int(week)]
 
-                wind=[u'северный',u'северо-восточный',u'восточный',u'юго-восточный',u'южный',u'юго-западный',u'западный',u'северо-западный']
-                sky=[u'ясно',u'малооблачно',u'облачно',u'пасмурно',u'дождь',u'ливень',u'снег',u'снег',u'гроза',u'нет данных',u'без осадков']
-                skys=[u'ясн',u'малоб',u'обл',u'пасм',u'дожд',u'ливен',u'снег',u'снег',u'гроза',u'???',u'б/осад']
+        wind=[u'северный',u'северо-восточный',u'восточный',u'юго-восточный',u'южный',u'юго-западный',u'западный',u'северо-западный']
+        sky=[u'ясно',u'малооблачно',u'облачно',u'пасмурно',u'дождь',u'ливень',u'снег',u'снег',u'гроза',u'нет данных',u'без осадков']
+        skys=[u'ясн',u'малоб',u'обл',u'пасм',u'дожд',u'ливен',u'снег',u'снег',u'гроза',u'???',u'б/осад']
 
-                winddir = wind[int(winddir)]
-                clouds=skys[int(cloud)]
-                cloud=sky[int(cloud)]
-                precipitations=skys[int(precipitation)]
-                precipitation=sky[int(precipitation)]
+        winddir = wind[int(winddir)]
+        clouds=skys[int(cloud)]
+        cloud=sky[int(cloud)]
+        precipitations=skys[int(precipitation)]
+        precipitation=sky[int(precipitation)]
 
-                weather += '\n'+hour+ u' (' +day+ ' ' +mounth+ ', '+week+u'):\n  температура воздуха от '+tempmin+ u' до '+tempmax+u' ('+heatmin+u'-'+heatmax+u')'+u';\n  '+cloud+u', '+precipitation+u';\n  атмосферное давление '+presmin+u'-'+presmax+u'мм.рт.ст.;\n  ветер '+winddir+ u', '+windmin+'-'+windmax+u'м/с;\n  влажность воздуха '+rewmin+'-'+rewmax+u'%;\n'
-                weather_s += '\n'+hour+u' '+tempmin+ u'..'+tempmax+u' ('+heatmin+u'..'+heatmax+u')'+u'; '+cloud+u', '+precipitation
-                weather_sms += '\n'+hour[0]+tempmin+ u'-'+tempmax+u'['+heatmin+u'-'+heatmax+u']'+u';'+clouds+u','+precipitations
+        weather += '\n'+hour+ u' (' +day+ ' ' +mounth+ ', '+week+u'):\n  температура воздуха от '+tempmin+ u' до '+tempmax+u' ('+heatmin+u'-'+heatmax+u')'+u';\n  '+cloud+u', '+precipitation+u';\n  атмосферное давление '+presmin+u'-'+presmax+u'мм.рт.ст.;\n  ветер '+winddir+ u', '+windmin+'-'+windmax+u'м/с;\n  влажность воздуха '+rewmin+'-'+rewmax+u'%;\n'
+        weather_s += '\n'+hour+u' '+tempmin+ u'..'+tempmax+u' ('+heatmin+u'..'+heatmax+u')'+u'; '+cloud+u', '+precipitation
+        weather_sms += '\n'+hour[0]+tempmin+ u'-'+tempmax+u'['+heatmin+u'-'+heatmax+u']'+u';'+clouds+u','+precipitations
 
-            if type == 'public':
-                return weather_s
-            if type == 'private':
-                return weather
-            if type == 'sms':
-                return weather_sms
-            else:
-                return weather
+    if typ == 'public':
+        return weather_s
+    if typ == 'private':
+        return weather
+    if typ == 'sms': # not used
+        return weather_sms
+    else:
+        return weather
 
 def get_gism(node, short):
     pub = 'public' if short else 'private'
     try:
         code = int(unicode(node).split('@')[0])
     except:
-        print "can't get code for node",[node]
+        print "can't get code for node", unicode(node)
         return None
     if (code in wz_cache[pub]) and (time.time() - wz_cache[pub][code][0] < cache_ttl):
             wz = wz_cache[pub][code][1]
     else:
             wz_cache[pub][code] = time.time(), get_weather_g(code,pub)
+
     return wz_cache[pub][code][1]
 
 
@@ -165,8 +175,8 @@ class Transport:
     online = 1
     offlinemsg = ''
     last = time.time()
-    version = '0.3'
-    weatherlogo = 'iVBORw0KGgoAAAANSUhEUgAAACAAAAAgCAMAAABEpIrGAAADAFBMVEUAAAAXlP4Uiv8UkP4Uh/8Uhv8Ujv4LzP4MzP4M0/4Lyv8J5P4Lz/8Lzv8Vjf4Vi/4Vif4Vif4Ujf4Ui/4Uiv4Uj/4Ujf4Uk/4UkP4Tk/4Tkf4TlP4Tlv4Nwv4Nxf4Mxf4MyP4Mxv4LzP4Lyv4Lzf4MzP4L0P4Lz/4Lzv4K1P4K0v4K0f4K0P4ViP4ViP8Uiv8UjP8TjP8Uj/8Tkf8Tk/8Tlv8SmP4SmP8Smv8Rmv8Pmv8RnP8SnP8PnP8dn/E4pNY6pNQgn+4PnP4Rn/8Sn/1WrbnBw0/qyyfsyybJxUdksKoTn/kPnv8Rof8Oof9VsLzq0C7/1Rj/1Rv/1Bvw1kCKyMxoxP9ev/81r/8Tov8Qof8Qo/8apvW9zF7/2yD/2iT/2iP/2iX/5GH/8azy8cvD5/m85f+u4P9qxf8Ypv8Oov8Oo/8Rpv8Opf8zrt/m2j//4Cr/4Cv/517/9b7/9sf79cjM6vK95v+/5/9sx/8zsv8cqv8Ppf8Qpv8QqP8Op/8zsd/n4Eb/5jL/5jP/5zv/9Kj/+dL/+M/8+NHT7fPG6v/H6v/D6f+85v+75v+f3P9Mvv8RqP8Pqv8brfXA22v/7Tf/6zf/7lT/+cv/+9n/+9j2+N7U7/vP7v/Q7v/T7/9Mv/8Nqv8Qrf8NrP9ZwcHt6kr/8Vv/96n/+97//OD9++Ho9fLZ8f/c8v+m4P8ZsP8PrP8Pr/8Pr/xxy8X199D9/Ov9/On6++vu+PTi9P7i9P/j9f/O7v8vuf8Nrv8Osf8Psf8LsP9pzv/s+P3v+fvv+frq+P7q+P/r+P/s+P/V8f8vvP8Msf8PtP8Lsv971f/1+//x+v+05/8Yt/8Os/8Otv8Ltf9Fxv/j9v/2+//z+//0+//3/P/g9f9Qyv8Mtf8OuP8NuP8Quf9o0//P8P/k9v/l9//f9f+46v9QzP8Ouv8Nuv8lwf86x/87x/8zxf8Zvv8Luv8Nvf8MvP8LvP8Nv/4Nv/8Mwf8MxP8Mxv8LyP8My/8Lzf8Kz/4Kz//////VbIFxAAAALXRSTlMAAAAAAAAAAAAAAAAAABdxyPI4vvs42Re9cfrH8fHHx3H6F7042Ti++xdxyPJYUQVDAAABtElEQVR42nzGAxLDUBQAwBeOYydHqG2ljmve/xi18Xe0ABjOsBwfT3yI8xzL4BgAQQqilPxJEgWKAFpWUuk/UopMg6plEDQVdCOLYOhg5pBMsPJIFhSKSAUo3ZUrlXLpG1QvatV6o9lqd075APZVt9cfDEdjx3Vd+w14F34QRpNpNJsvlqv1xnsB24vd/qi4+ITEpOSU1LT0jMys7Gg4YMgBgdy8/ILCgqLiktKy8oryyqqq6praHAhgqAOB+obGpuYWAFPykMAAEAMAMC/vqbZt27aNrfWYItliriMSS6QyuUKhVKk1Wp2AgB4ZjCazxWqzO5wu95tH6fXRgB8FgqFwJBqLJ5JcKp3J4kCO5AvFUrlSrdW5RrPVxoAO6vb6g+FoMJ5MJ2Q2XyxxYEXWG7b9x3b7AwYcyel8ud6+7s++5OGAoSiKAuBZxekg+Hzuv5nYtm3jznayuXzhGihelcqVaq1+12i2iqVroH3T6XR7/bvBcNRpX2H8MJk+jR8wm5NmSC5ISaSWpDQse0WwLTjumuA6CHr+5i/fCyEcYVxsfxKcRcJANCaVNrv9h53RSsajOAJEXzIn7jGAuwAAAABJRU5ErkJggg=='
+    version = version
+    weatherlogo = weatherlogo
 
     def __init__(self,jabber):
         self.jabber = jabber
@@ -187,9 +197,8 @@ class Transport:
 
     # IQ Handlers
     def xmpp_iq(self, conn, iq):
-        print '======================= iq: ',[self], [conn], [iq]
         ns = iq.getQueryNS()
-        typ = iq.getType()
+        print 'IQ REQUEST: ', ns
         if ns == xmpp.NS_GATEWAY: # to allow add bots via "Add contact"
             self.iq_gateway_handler(iq)
         elif ns == xmpp.NS_LAST: # to get uptime
@@ -218,7 +227,7 @@ class Transport:
 #            self.iq_register_handler(iq)
 #            print "*****self.iq_register_handler(iq) exits"
         else:
-            print "***************************************",ns
+            print "Not implemented namespace: ", ns
             self.send_not_implemented(iq)
 
     def iq_vcard_handler(self, iq):
@@ -242,21 +251,24 @@ class Transport:
             if re.match(r"^[0-9]{1,5}$", idx):
                 data = cur.execute("SELECT * FROM cityindex WHERE idx = (?) LIMIT 1", (idx, ))
                 data = cur.fetchone()
+                if data:
+                    query.setTagData(tag='NICKNAME', val=data[6])
+
+                    tel = query.addChild('TEL')
+                    tel.setTagData(tag='NUMBER',     val=data[0])
+
+                    addrru = query.addChild('ADR')
+                    addrru.setTagData(tag='CTRY',    val=data[1]+" ("+data[3]+")")
+                    addrru.setTagData(tag='REGION',  val=data[2]+" ("+data[4]+")")
+                    addrru.setTagData(tag='LOCALITY',val=data[6]+" ("+data[5]+")")
+
+                    query.setTagData(tag='FN',       val=data[6]+", "+data[2]+", "+data[1])
+                    query.setTagData(tag='DESC',     val="Lat.: "+data[7]+", Long.: "+data[8]+", Alt.: "+data[9]+"\n"+data[10])
+                else:
+                    query.setTagData(tag='FN',       val="Город не найден")
 
                 query.setTagData(tag='URL',      val='https://github.com/jabberworld/gismeteo')
                 query.setTagData(tag='BDAY',     val='2022-07-22')
-                query.setTagData(tag='NICKNAME', val=data[6])
-
-                tel = query.addChild('TEL')
-                tel.setTagData(tag='NUMBER',     val=data[0])
-
-                addrru = query.addChild('ADR')
-                addrru.setTagData(tag='CTRY',    val=data[1]+" ("+data[3]+")")
-                addrru.setTagData(tag='REGION',  val=data[2]+" ("+data[4]+")")
-                addrru.setTagData(tag='LOCALITY',val=data[6]+" ("+data[5]+")")
-
-                query.setTagData(tag='FN',       val=data[6]+", "+data[2]+", "+data[1])
-                query.setTagData(tag='DESC',     val="Lat.: "+data[7]+", Long.: "+data[8]+", Alt.: "+data[9]+"\n"+data[10])
 
                 botav = query.addChild('PHOTO')
                 botav.setTagData(tag='BINVAL',   val=self.weatherlogo)
@@ -297,13 +309,10 @@ class Transport:
         ft = DataForm('form')
 #        instr = xmpp.Node('instructions')
 #        instr.setData(u"Введите город для поиска")
-#        city = xmpp.Node('city')
         ft.addChild(node=DataField(name='FORM_TYPE',value=NS_SEARCH, typ='hidden'))
-#        ft.addChild(node=instr)
-#        ft.addChild(node=city)
         ft.addChild(node=DataField(name='city', label='Город', typ='text-single'))
         return [ft]
-#        return [city, ft]
+#        return [instr, ft]
 
     def set_register_form(self, iq):
         iq_children = iq.getQueryChildren()
@@ -371,21 +380,24 @@ class Transport:
         if (typ=='get') and (jid_to_stripped==NAME) and (not iq_children):
             repl = iq.buildReply(typ='result')
             query = xmpp.Node('query', attrs={'xmlns':xmpp.NS_GATEWAY})
-            query.setTagData('desc', u'enter city code:')
+            query.setTagData('desc', u'Enter city code:')
             query.setTag('prompt')
             repl.setPayload([query])
             self.jabber.send(repl)
+            raise NodeProcessed
         elif (typ=='set') and (jid_to_stripped==NAME) and iq_children:
-            e_mail = [node.getData() for node in iq_children if node.getName()=='prompt']
-            if len(e_mail) == 1:
+            code = [node.getData() for node in iq_children if node.getName()=='prompt']
+            code = str(code[0])
+            if re.match(r"^[0-9]{1,5}$", code):
                 prompt = xmpp.simplexml.Node('jid')
-#                prompt.setData(utils.mail2jid(e_mail[0]))
-                prompt.setData(e_mail[0].replace('@', '%') + '@' + NAME)
+                prompt.setData(code + '@' + NAME)
                 repl = iq.buildReply(typ='result')
                 repl.setQueryPayload([prompt])
                 self.jabber.send(repl)
+                raise NodeProcessed
             else:
                 self.send_bad_request(iq)
+                raise NodeProcessed
         else:
             self.send_not_implemented(iq)
 
@@ -445,96 +457,49 @@ class Transport:
         show = event.getShow()
         status = event.getStatus()
         to = event.getTo()
-        try:
-            print "pres===============", fromjid, to, type, show
-        except:
-            print "pres===============XRENNNN"
-        if type == 'subscribe':
-            self.jabber.send(Presence(to=fromjid, frm = to, typ = 'subscribe'))
-        elif type == 'subscribed':
-            self.jabber.send(Presence(to=fromjid, frm = to, typ = 'subscribed'))
-        elif type == 'unsubscribe':
-            self.jabber.send(Presence(to=fromjid, frm = to, typ = 'unsubscribe'))
-        elif type == 'unsubscribed':
-            self.jabber.send(Presence(to=fromjid, frm = to, typ = 'unsubscribed'))
-        elif type == 'probe':
-            print "PROBE",self.usr_show(fromjid, type, show)
-            self.jabber.send(Presence(to=fromjid, frm = to))
-        elif type == 'unavailable':
-            self.pres_exec(to, fromjid, type, show)
-            self.jabber.send(Presence(to=fromjid, frm = to, typ = 'unavailable'))
-        elif type == 'error':
-            return
-        else:
-            if not fromjid.getStripped() in wz_clients: wz_clients[fromjid.getStripped()]=[]
-            if not to.getStripped() in wz_clients[fromjid.getStripped()]:
-                if '@' in to.getStripped():
-                    wz_clients[fromjid.getStripped()].append(to.getStripped())
-
-            wz = self.pres_exec(to, fromjid, type, show)
-            if wz: status=wz
-#            print "pres===============",fromjid,to,type,show
-#            try: print str(event)
-#            except: pass
-            self.jabber.send(Presence(to=fromjid, frm = to, typ = type, show=show, status=status))
+        if re.match(r"^[0-9]{1,5}$", str(to.node.encode("utf-8"))):
+            try:
+                print "PRESENCE: ", fromjid, "->", to, type, show
+            except:
+                print "PRESENCE: ERROR"
+            if type == 'subscribe':
+                self.jabber.send(Presence(to=fromjid, frm = to, typ = 'subscribe'))
+            elif type == 'subscribed':
+                self.jabber.send(Presence(to=fromjid, frm = to, typ = 'subscribed'))
+            elif type == 'unsubscribe':
+                self.jabber.send(Presence(to=fromjid, frm = to, typ = 'unsubscribe'))
+            elif type == 'unsubscribed':
+                self.jabber.send(Presence(to=fromjid, frm = to, typ = 'unsubscribed'))
+            elif type == 'probe':
+                print "PROBE", self.usr_show(fromjid, type, show)
+                self.jabber.send(Presence(to=fromjid, frm = to))
+            elif type == 'unavailable':
+                self.jabber.send(Presence(to=fromjid, frm = to, typ = 'unavailable'))
+            elif type == 'error':
+                return
+            else:
+                wz = self.pres_exec(to, fromjid, type, show)
+                if wz: status=wz
+                self.jabber.send(Presence(to=fromjid, frm = to, typ = type, show=show, status=status))
 
     def usr_show(self, jid, type, show):
-        res = jid.getResource()
-        jid = jid.getStripped()
-        prio= 0
-
-        unavail = 0
-        if type == 'unavailable':
-            show = 'unavailable'
-            unavail = 1
-        elif not type and not show:
+        if not type and not show:
             show = 'available'
-        #return show
-
-        # self.online_users = {}
-        # self.online_users[jid] = {}
-        # self.online_users[jid][res] = {}
-        # self.online_users[jid][res]['prio'] = prio
-        # self.online_users[jid][res]['show'] = show
-
-        if unavail:
-            if self.online_users.has_key(jid):
-                if self.online_users[jid].has_key(res):
-                    del self.online_users[jid][res]
-                if not len(self.online_users[jid]):
-                    del self.online_users[jid]
-#            print 'self.online_users=',self.online_users
-            return show
-        else:
-            if not self.online_users.has_key(jid):
-                self.online_users[jid] = {res:{'prio':prio, 'show':show}}
-            else:
-                self.online_users[jid][res] = {'prio': prio, 'show': show}
-
-            maxprio = -100
-            for res in self.online_users[jid]:
-                pr = self.online_users[jid][res]['prio']
-                if pr > maxprio:
-                    maxprio = prio
-                    show = self.online_users[jid][res]['show']
-#            print 'self.online_users=',self.online_users
-            return show
+        return show
 
     def pres_exec(self, tojid, jid, type, show):
-
         show = self.usr_show(jid, type, show)
-        jid=jid.getStripped()
-
-        print tojid,jid,type,show
+        print "PRES EXEC",
+        print tojid, "->", jid, type, show
         return get_gism(tojid, short=1)
 
     def xmpp_message(self, con, event):
 
-        print "message: "
         mtype = event.getType()
         fromjid = event.getFrom()
         fromstripped = fromjid.getStripped()
         to = event.getTo()
+        print "GOT MSG FROM: ", fromjid
         try:
             if event.getSubject.strip() == '':
                 event.setSubject(None)
@@ -548,58 +513,13 @@ class Transport:
             m = Message(to=fromjid,frm = to, body = wz)
             self.jabber.send(m)
         else:
-            body = event.getBody()
-#            m = Message(to=fromjid,frm = to, subject = event.getSubject(), body = u'you sent me "%s". WHY???'%(body))
-            self.command_handler(fromjid,to,body)
-
-    def command_handler(self,fromjid,to,body):
-        print "COMMAND"
-        def reply(to,body):
-#            if not isinstance(body, unicode):
-#                body = body.decode('utf8', 'replace')
-            m = Message(to=fromjid,frm = to, body = body)
-            self.jabber.send(m)
-        def onoff(arg):
-            if arg:return 'on'
-            else:return 'off'
-
-        body = body.split(' ',1)
-        if len(body) == 1:
-            body.append('')
-        elif len(body) > 2 or len(body) < 1:
-            reply(to,'хз чо за косяк')
-            return
-        cmd,params = body
-
-        cmd = cmd.lower().strip()
-        params = params.lower().strip().split()
-        user = fromjid.getStripped().split('@'+self.domain)
-
-        if fromjid.getStripped() != 'username@linuxoid.in':
-            print fromjid.getStripped()
-            return
-
-        print 'user',[user]
-        if len(user) == 2 and user[1] == '':
-            user = user[0]
-        else:
-            reply(to,'Пшёл вон, я хз кто ты!')
-            return
-
-        if cmd == 'online':
-            reply(to, str(self.online_users))
-        elif cmd == 'wz':
-            reply(to, str(wz_clients))
-        elif cmd == 'list':
-            pass
-        else:
-            reply(to,'...')
+            pass # this variant is for commands to transport directly
 
     def xmpp_connect(self):
         connected = None
         while not connected:
             connected = self.jabber.connect((HOST, PORT))
-            time.sleep(5)
+            time.sleep(2)
         self.register_handlers()
         connected = self.jabber.auth(NAME, PASSWORD)
         return connected
