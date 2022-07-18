@@ -1,0 +1,13 @@
+CREATE TABLE cityindex (
+	idx INTEGER,
+	country_ru TEXT COLLATE NOCASE,
+	region_ru TEXT COLLATE NOCASE,
+	country_en TEXT COLLATE NOCASE,
+	region_en TEXT COLLATE NOCASE,
+	name_en TEXT COLLATE NOCASE,
+	name_ru TEXT COLLATE NOCASE,
+	lat TEXT,
+	long TEXT,
+	alt TEXT,
+	keywords TEXT COLLATE NOCASE
+);
