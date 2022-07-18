@@ -6,7 +6,7 @@
 #               2022 rain from JabberWorld. JID: rain@jabberworld.info
 # Licence:      GPL v2
 # Requirements:
-#               python-xmpppy
+#               python-xmpppy - https://github.com/xmpppy/xmpppy
 
 import os
 import signal
