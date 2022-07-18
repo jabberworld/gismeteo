@@ -201,8 +201,8 @@ class Transport:
                         NS_DISCO_ITEMS,
                         NS_SEARCH,
                         NS_VCARD,
-                        NS_PING,
-                        NS_URN_TIME
+                        'urn:xmpp:ping',
+                        'urn:xmpp:time'
                         ]}
 
     def register_handlers(self):
@@ -231,9 +231,9 @@ class Transport:
             self.iq_disco_info_handler(iq)
         elif ns == xmpp.NS_DISCO_ITEMS: # to prevent error when you expand transport's tree in service browser
             self.iq_disco_items_handler(iq)
-        elif iq.getTag('ping') and iq.getTag('ping').getNamespace() == xmpp.NS_PING:
+        elif iq.getTag('ping') and iq.getTag('ping').getNamespace() == 'urn:xmpp:ping':
             self.iq_ping_handler(iq)
-        elif iq.getTag('time') and iq.getTag('time').getNamespace() == xmpp.NS_URN_TIME:
+        elif iq.getTag('time') and iq.getTag('time').getNamespace() == 'urn:xmpp:time':
             self.iq_time_handler(iq, 'new')
 #        elif ns == xmpp.NS_TIME:
 #            self.iq_time_handler(iq, 'old')
@@ -554,16 +554,20 @@ class Transport:
     def xmpp_connect(self):
         connected = None
         while not connected:
+            print "Connecting..."
             connected = self.jabber.connect((HOST, PORT))
-            time.sleep(2)
+            time.sleep(1)
         self.register_handlers()
         connected = self.jabber.auth(NAME, PASSWORD)
+        print "Connected"
         return connected
 
     def xmpp_disconnect(self):
+        print "Disconnected"
         time.sleep(5)
         if not self.jabber.reconnectAndReauth():
-            time.sleep(5)
+            print "Reconnect in 60 seconds"
+            time.sleep(60)
             self.xmpp_connect()
 
 def logError():
