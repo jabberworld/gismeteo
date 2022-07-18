@@ -4,5 +4,10 @@
 	<host>192.168.220.250</host>
 	<port>5555</port>
 	<password>superpassword</password>
+
+    <cache_ttl>600</cache_ttl>
+    <useproxy>1</useproxy>
+    <proxyaddr>127.0.0.1</proxyaddr>
+    <proxyport>54321</proxyport>
 </config>
-    
+

@@ -22,15 +22,7 @@ from xmpp.browser import *
 from xml.parsers import expat
 
 wz_cache = {'public':{}, 'private':{}}
-cache_ttl = 600
 version = '0.3'
-
-useproxy = 1
-proxyaddr = '127.0.0.1'
-proxyport = 54321
-
-if not useproxy:
-    import urllib2
 
 weatherlogo = 'iVBORw0KGgoAAAANSUhEUgAAACAAAAAgCAMAAABEpIrGAAADAFBMVEUAAAAXlP4Uiv8UkP4Uh/8Uhv8Ujv4LzP4MzP4M0/4Lyv8J5P4Lz/8Lzv8Vjf4Vi/4Vif4Vif4Ujf4Ui/4Uiv4Uj/4Ujf4Uk/4UkP4Tk/4Tkf4TlP4Tlv4Nwv4Nxf4Mxf4MyP4Mxv4LzP4Lyv4Lzf4MzP4L0P4Lz/4Lzv4K1P4K0v4K0f4K0P4ViP4ViP8Uiv8UjP8TjP8Uj/8Tkf8Tk/8Tlv8SmP4SmP8Smv8Rmv8Pmv8RnP8SnP8PnP8dn/E4pNY6pNQgn+4PnP4Rn/8Sn/1WrbnBw0/qyyfsyybJxUdksKoTn/kPnv8Rof8Oof9VsLzq0C7/1Rj/1Rv/1Bvw1kCKyMxoxP9ev/81r/8Tov8Qof8Qo/8apvW9zF7/2yD/2iT/2iP/2iX/5GH/8azy8cvD5/m85f+u4P9qxf8Ypv8Oov8Oo/8Rpv8Opf8zrt/m2j//4Cr/4Cv/517/9b7/9sf79cjM6vK95v+/5/9sx/8zsv8cqv8Ppf8Qpv8QqP8Op/8zsd/n4Eb/5jL/5jP/5zv/9Kj/+dL/+M/8+NHT7fPG6v/H6v/D6f+85v+75v+f3P9Mvv8RqP8Pqv8brfXA22v/7Tf/6zf/7lT/+cv/+9n/+9j2+N7U7/vP7v/Q7v/T7/9Mv/8Nqv8Qrf8NrP9ZwcHt6kr/8Vv/96n/+97//OD9++Ho9fLZ8f/c8v+m4P8ZsP8PrP8Pr/8Pr/xxy8X199D9/Ov9/On6++vu+PTi9P7i9P/j9f/O7v8vuf8Nrv8Osf8Psf8LsP9pzv/s+P3v+fvv+frq+P7q+P/r+P/s+P/V8f8vvP8Msf8PtP8Lsv971f/1+//x+v+05/8Yt/8Os/8Otv8Ltf9Fxv/j9v/2+//z+//0+//3/P/g9f9Qyv8Mtf8OuP8NuP8Quf9o0//P8P/k9v/l9//f9f+46v9QzP8Ouv8Nuv8lwf86x/87x/8zxf8Zvv8Luv8Nvf8MvP8LvP8Nv/4Nv/8Mwf8MxP8Mxv8LyP8My/8Lzf8Kz/4Kz//////VbIFxAAAALXRSTlMAAAAAAAAAAAAAAAAAABdxyPI4vvs42Re9cfrH8fHHx3H6F7042Ti++xdxyPJYUQVDAAABtElEQVR42nzGAxLDUBQAwBeOYydHqG2ljmve/xi18Xe0ABjOsBwfT3yI8xzL4BgAQQqilPxJEgWKAFpWUuk/UopMg6plEDQVdCOLYOhg5pBMsPJIFhSKSAUo3ZUrlXLpG1QvatV6o9lqd075APZVt9cfDEdjx3Vd+w14F34QRpNpNJsvlqv1xnsB24vd/qi4+ITEpOSU1LT0jMys7Gg4YMgBgdy8/ILCgqLiktKy8oryyqqq6praHAhgqAOB+obGpuYWAFPykMAAEAMAMC/vqbZt27aNrfWYItliriMSS6QyuUKhVKk1Wp2AgB4ZjCazxWqzO5wu95tH6fXRgB8FgqFwJBqLJ5JcKp3J4kCO5AvFUrlSrdW5RrPVxoAO6vb6g+FoMJ5MJ2Q2XyxxYEXWG7b9x3b7AwYcyel8ud6+7s++5OGAoSiKAuBZxekg+Hzuv5nYtm3jznayuXzhGihelcqVaq1+12i2iqVroH3T6XR7/bvBcNRpX2H8MJk+jR8wm5NmSC5ISaSWpDQse0WwLTjumuA6CHr+5i/fCyEcYVxsfxKcRcJANCaVNrv9h53RSsajOAJEXzIn7jGAuwAAAABJRU5ErkJggg=='
 
@@ -42,10 +34,15 @@ cur = con.cursor()
 
 dom = xml.dom.minidom.parse(config)
 
-NAME =  dom.getElementsByTagName("name")[0].childNodes[0].data
-HOST =  dom.getElementsByTagName("host")[0].childNodes[0].data
-PORT =  dom.getElementsByTagName("port")[0].childNodes[0].data
-PASSWORD = dom.getElementsByTagName("password")[0].childNodes[0].data
+NAME      =  dom.getElementsByTagName("name")[0].childNodes[0].data
+HOST      =  dom.getElementsByTagName("host")[0].childNodes[0].data
+PORT      =  dom.getElementsByTagName("port")[0].childNodes[0].data
+PASSWORD  = dom.getElementsByTagName("password")[0].childNodes[0].data
+
+cache_ttl = int(dom.getElementsByTagName("cache_ttl")[0].childNodes[0].data)
+useproxy  = int(dom.getElementsByTagName("useproxy")[0].childNodes[0].data)
+proxyaddr = str(dom.getElementsByTagName("proxyaddr")[0].childNodes[0].data)
+proxyport = int(dom.getElementsByTagName("proxyport")[0].childNodes[0].data)
 
 def get_weather_g(kod, typ):
 
@@ -54,7 +51,7 @@ def get_weather_g(kod, typ):
         import socket
         socks.setdefaultproxy(socks.PROXY_TYPE_SOCKS5, proxyaddr, proxyport)
         socket.socket = socks.socksocket
-        import urllib2
+    import urllib2
 
     kod=str(kod)
     req = urllib2.Request(u'http://informer.gismeteo.ru/xml/'+kod+u'_1.xml',headers={'User-agent': 'Mozilla/4.0 (compatible; MSIE 5.01; Windows NT 5.0)'})
