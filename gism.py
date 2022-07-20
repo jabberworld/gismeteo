@@ -22,7 +22,7 @@ from xmpp.browser import *
 from xml.parsers import expat
 
 wz_cache = {'public':{}, 'private':{}}
-version = '1.0'
+version = '1.1'
 
 weatherlogo = 'iVBORw0KGgoAAAANSUhEUgAAACAAAAAgCAMAAABEpIrGAAADAFBMVEUAAAAXlP4Uiv8UkP4Uh/8Uhv8Ujv4LzP4MzP4M0/4Lyv8J5P4Lz/8Lzv8Vjf4Vi/4Vif4Vif4Ujf4Ui/4Uiv4Uj/4Ujf4Uk/4UkP4Tk/4Tkf4TlP4Tlv4Nwv4Nxf4Mxf4MyP4Mxv4LzP4Lyv4Lzf4MzP4L0P4Lz/4Lzv4K1P4K0v4K0f4K0P4ViP4ViP8Uiv8UjP8TjP8Uj/8Tkf8Tk/8Tlv8SmP4SmP8Smv8Rmv8Pmv8RnP8SnP8PnP8dn/E4pNY6pNQgn+4PnP4Rn/8Sn/1WrbnBw0/qyyfsyybJxUdksKoTn/kPnv8Rof8Oof9VsLzq0C7/1Rj/1Rv/1Bvw1kCKyMxoxP9ev/81r/8Tov8Qof8Qo/8apvW9zF7/2yD/2iT/2iP/2iX/5GH/8azy8cvD5/m85f+u4P9qxf8Ypv8Oov8Oo/8Rpv8Opf8zrt/m2j//4Cr/4Cv/517/9b7/9sf79cjM6vK95v+/5/9sx/8zsv8cqv8Ppf8Qpv8QqP8Op/8zsd/n4Eb/5jL/5jP/5zv/9Kj/+dL/+M/8+NHT7fPG6v/H6v/D6f+85v+75v+f3P9Mvv8RqP8Pqv8brfXA22v/7Tf/6zf/7lT/+cv/+9n/+9j2+N7U7/vP7v/Q7v/T7/9Mv/8Nqv8Qrf8NrP9ZwcHt6kr/8Vv/96n/+97//OD9++Ho9fLZ8f/c8v+m4P8ZsP8PrP8Pr/8Pr/xxy8X199D9/Ov9/On6++vu+PTi9P7i9P/j9f/O7v8vuf8Nrv8Osf8Psf8LsP9pzv/s+P3v+fvv+frq+P7q+P/r+P/s+P/V8f8vvP8Msf8PtP8Lsv971f/1+//x+v+05/8Yt/8Os/8Otv8Ltf9Fxv/j9v/2+//z+//0+//3/P/g9f9Qyv8Mtf8OuP8NuP8Quf9o0//P8P/k9v/l9//f9f+46v9QzP8Ouv8Nuv8lwf86x/87x/8zxf8Zvv8Luv8Nvf8MvP8LvP8Nv/4Nv/8Mwf8MxP8Mxv8LyP8My/8Lzf8Kz/4Kz//////VbIFxAAAALXRSTlMAAAAAAAAAAAAAAAAAABdxyPI4vvs42Re9cfrH8fHHx3H6F7042Ti++xdxyPJYUQVDAAABtElEQVR42nzGAxLDUBQAwBeOYydHqG2ljmve/xi18Xe0ABjOsBwfT3yI8xzL4BgAQQqilPxJEgWKAFpWUuk/UopMg6plEDQVdCOLYOhg5pBMsPJIFhSKSAUo3ZUrlXLpG1QvatV6o9lqd075APZVt9cfDEdjx3Vd+w14F34QRpNpNJsvlqv1xnsB24vd/qi4+ITEpOSU1LT0jMys7Gg4YMgBgdy8/ILCgqLiktKy8oryyqqq6praHAhgqAOB+obGpuYWAFPykMAAEAMAMC/vqbZt27aNrfWYItliriMSS6QyuUKhVKk1Wp2AgB4ZjCazxWqzO5wu95tH6fXRgB8FgqFwJBqLJ5JcKp3J4kCO5AvFUrlSrdW5RrPVxoAO6vb6g+FoMJ5MJ2Q2XyxxYEXWG7b9x3b7AwYcyel8ud6+7s++5OGAoSiKAuBZxekg+Hzuv5nYtm3jznayuXzhGihelcqVaq1+12i2iqVroH3T6XR7/bvBcNRpX2H8MJk+jR8wm5NmSC5ISaSWpDQse0WwLTjumuA6CHr+5i/fCyEcYVxsfxKcRcJANCaVNrv9h53RSsajOAJEXzIn7jGAuwAAAABJRU5ErkJggg=='
 
@@ -43,121 +43,183 @@ cache_ttl = int(dom.getElementsByTagName("cache_ttl")[0].childNodes[0].data)
 useproxy  = int(dom.getElementsByTagName("useproxy")[0].childNodes[0].data)
 proxyaddr = str(dom.getElementsByTagName("proxyaddr")[0].childNodes[0].data)
 proxyport = int(dom.getElementsByTagName("proxyport")[0].childNodes[0].data)
+datasrc   = str(dom.getElementsByTagName("datasrc")[0].childNodes[0].data)
 
-def get_weather_g(kod, typ):
+if useproxy:
+    import socks
+    import socket
+    socks.setdefaultproxy(socks.PROXY_TYPE_SOCKS5, proxyaddr, proxyport)
+    socket.socket = socks.socksocket
+import urllib2
 
-    if useproxy:
-        import socks
-        import socket
-        socks.setdefaultproxy(socks.PROXY_TYPE_SOCKS5, proxyaddr, proxyport)
-        socket.socket = socks.socksocket
-    import urllib2
-
-    kod=str(kod)
-    req = urllib2.Request(u'http://informer.gismeteo.ru/xml/'+kod+u'_1.xml',headers={'User-agent': 'Mozilla/4.0 (compatible; MSIE 5.01; Windows NT 5.0)'})
-    try:
-        r = urllib2.urlopen(req, timeout=10)
-    except:
-        r = None
-
-    global embedd
-    embedd=0
-    global wz,period
-    wz={}
-    period=0
-
-    def start_element(name, attrs):
-        global embedd,wz,period
-        embedd+=1
-        if period not in wz:
-            wz[period]={}
-        wz[period][name]=attrs
-
-    def end_element(name):
-        global embedd,period
-        embedd-=1
-        if name=='FORECAST':
-            period+=1
-        return
-
-    p = expat.ParserCreate()
-
-    p.StartElementHandler = start_element
-    p.EndElementHandler = end_element
-    try:
-        p.ParseFile(r)
-    except:
-        return None
-
-    cityname=urllib2.unquote(str(wz[0][u'TOWN'][u'sname'])).decode("cp1251")
-
-    weather = u'Погода по г. '+cityname+u' (№'+kod+u'):'
-    weather_s = u'Погода по г. '+cityname+u' (№'+kod+u'):'
-    weather_sms =u'№'+kod+u':'
-    for period in wz:
-        pr=wz[period]
-#         print pr.keys()
-#         print pr[u'TOWN'].keys()
-#         print pr[u'TOWN'][u'sname']
-        day = str(pr[u'FORECAST'][u'day'])
-        mounth = pr[u'FORECAST'][u'month']
-        hour = pr[u'FORECAST'][u'hour']
-        week = pr[u'FORECAST'][u'weekday']
-        cloud = pr[u'PHENOMENA'][u'cloudiness']
-        precipitation = pr[u'PHENOMENA'][u'precipitation']
-        presmax = pr[u'PRESSURE'][u'max']
-        presmin = pr[u'PRESSURE'][u'min']
-        tempmax = pr[u'TEMPERATURE'][u'max']
-        tempmin = pr[u'TEMPERATURE'][u'min']
-        heatmax = pr[u'HEAT'][u'max']
-        heatmin = pr[u'HEAT'][u'min']
-        windmin = pr[u'WIND'][u'min']
-        windmax = pr[u'WIND'][u'max']
-        winddir = pr[u'WIND'][u'direction']
-        rewmax = pr[u'RELWET'][u'max']
-        rewmin = pr[u'RELWET'][u'min']
-
+if datasrc == 'meteonova':
+    import feedparser
+    def get_weather_g(kod, typ):
+        kod=str(kod)
+        req = urllib2.Request(u'https://www.meteonova.ru/rss/'+kod+u'.xml')
         try:
-            hour=int(hour)
-            if hour in range(0,6):
-                hour=u'Ночь'
-            elif  hour in range(6,12):
-                hour=u'Утро'
-            elif  hour in range(12,18):
-                hour=u'День'
-            elif  hour in range(18,24):
-                hour=u'Вечер'
+            r = urllib2.urlopen(req, timeout=10)
         except:
-            print 'can\'t parse'
-            pass
+            r = None
 
-        months=[u'ХЗраля',u'Января',u'Февраля',u'Марта',u'Апреля',u'Мая',u'Июня',u'Июля',u'Августа',u'Сентября',u'Октября',u'Ноября',u'Декабря']
-        weekdays=[u'Нулесенье 8-|',u'Воскресенье',u'Понедельник',u'Вторник',u'Среда',u'Четверг',u'Пятница',u'Суббота',u'Восьмесение О_о']
-        mounth=months[int(mounth)]
-        week=weekdays[int(week)]
+        d = feedparser.parse(r)
+        bozo = d["bozo"]
 
-        wind=[u'северный',u'северо-восточный',u'восточный',u'юго-восточный',u'южный',u'юго-западный',u'западный',u'северо-западный']
-        sky=[u'ясно',u'малооблачно',u'облачно',u'пасмурно',u'дождь',u'ливень',u'снег',u'снег',u'гроза',u'нет данных',u'без осадков']
-        skys=[u'ясн',u'малоб',u'обл',u'пасм',u'дожд',u'ливен',u'снег',u'снег',u'гроза',u'???',u'б/осад']
+        weather = ''
+        weather_s = ''
 
-        winddir = wind[int(winddir)]
-        clouds=skys[int(cloud)]
-        cloud=sky[int(cloud)]
-        precipitations=skys[int(precipitation)]
-        precipitation=sky[int(precipitation)]
+        if bozo == 0:
+            for i in d["items"]:
+                title = i["title"]
+                city = title[:title.rfind(":")]
+                title = title[title.rfind(":")+2:]
+                ttle = title.split()
+                state = i["description"].split(", ")
+                temp = state[2].split()
+                wind = state[4].split()
+                wind = wind[1].split("-")
+                if len(wind) > 1:
+                    wind = wind[0][:1]+"-"+wind[1][:1]
+                else:
+                    wind = wind[0][:1]
 
-        weather += '\n'+hour+ u' (' +day+ ' ' +mounth+ ', '+week+u'):\n  температура воздуха от '+tempmin+ u' до '+tempmax+u' ('+heatmin+u'-'+heatmax+u')'+u';\n  '+cloud+u', '+precipitation+u';\n  атмосферное давление '+presmin+u'-'+presmax+u'мм.рт.ст.;\n  ветер '+winddir+ u', '+windmin+'-'+windmax+u'м/с;\n  влажность воздуха '+rewmin+'-'+rewmax+u'%;\n'
-        weather_s += '\n'+hour+u' '+tempmin+ u'..'+tempmax+u' ('+heatmin+u'..'+heatmax+u')'+u'; '+cloud+u', '+precipitation
-        weather_sms += '\n'+hour[0]+tempmin+ u'-'+tempmax+u'['+heatmin+u'-'+heatmax+u']'+u';'+clouds+u','+precipitations
+                weather += "\n"+title+"\n"+state[2]+"\n"+state[0]+", "+state[1]+"\n"+state[3]+"\n"+state[4]+", "+state[5]+"\n"
 
-    if typ == 'public':
-        return weather_s
-    if typ == 'private':
-        return weather
-    if typ == 'sms': # not used
-        return weather_sms
-    else:
-        return weather
+                if state[0] == u'облачно':
+                    state[0] = u'обл.'
+                elif state[0] == u'малооблачно':
+                    state[0] = u'м.обл.'
+                elif state[0] == u'пасмурно':
+                    state[0] = u'пасм.'
+
+                if state[1] == u'без осадков':
+                    state[1] = u'б/о'
+
+                weather_s += "\n"+ttle[0]+": "+temp[1]+", "+state[0]+", "+state[1]+", "+wind+" ("+state[5]+")"
+
+        else:
+            return 'Fetching weather error'
+
+        weather = u'Погода по г. '+city+u' (№'+kod+u'):'+weather
+        weather_s = u'Погода по г. '+city+u' (№'+kod+u'):'+weather_s
+
+        if typ == 'public':
+            return weather_s
+        if typ == 'private':
+            return weather
+        else:
+            return weather
+
+elif datasrc == 'gismeteo':
+    def get_weather_g(kod, typ):
+
+        kod=str(kod)
+        req = urllib2.Request(u'http://informer.gismeteo.ru/xml/'+kod+u'_1.xml',headers={'User-agent': 'Mozilla/4.0 (compatible; MSIE 5.01; Windows NT 5.0)'})
+        try:
+            r = urllib2.urlopen(req, timeout=10)
+        except:
+            r = None
+
+        global embedd
+        embedd=0
+        global wz,period
+        wz={}
+        period=0
+
+        def start_element(name, attrs):
+            global embedd,wz,period
+            embedd+=1
+            if period not in wz:
+                wz[period]={}
+            wz[period][name]=attrs
+
+        def end_element(name):
+            global embedd,period
+            embedd-=1
+            if name=='FORECAST':
+                period+=1
+            return
+
+        p = expat.ParserCreate()
+
+        p.StartElementHandler = start_element
+        p.EndElementHandler = end_element
+        try:
+            p.ParseFile(r)
+        except:
+            return None
+
+        cityname=urllib2.unquote(str(wz[0][u'TOWN'][u'sname'])).decode("cp1251")
+
+        weather = u'Погода по г. '+cityname+u' (№'+kod+u'):'
+        weather_s = u'Погода по г. '+cityname+u' (№'+kod+u'):'
+        weather_sms =u'№'+kod+u':'
+        for period in wz:
+            pr=wz[period]
+    #         print pr.keys()
+    #         print pr[u'TOWN'].keys()
+    #         print pr[u'TOWN'][u'sname']
+            day = str(pr[u'FORECAST'][u'day'])
+            mounth = pr[u'FORECAST'][u'month']
+            hour = pr[u'FORECAST'][u'hour']
+            week = pr[u'FORECAST'][u'weekday']
+            cloud = pr[u'PHENOMENA'][u'cloudiness']
+            precipitation = pr[u'PHENOMENA'][u'precipitation']
+            presmax = pr[u'PRESSURE'][u'max']
+            presmin = pr[u'PRESSURE'][u'min']
+            tempmax = pr[u'TEMPERATURE'][u'max']
+            tempmin = pr[u'TEMPERATURE'][u'min']
+            heatmax = pr[u'HEAT'][u'max']
+            heatmin = pr[u'HEAT'][u'min']
+            windmin = pr[u'WIND'][u'min']
+            windmax = pr[u'WIND'][u'max']
+            winddir = pr[u'WIND'][u'direction']
+            rewmax = pr[u'RELWET'][u'max']
+            rewmin = pr[u'RELWET'][u'min']
+
+            try:
+                hour=int(hour)
+                if hour in range(0,6):
+                    hour=u'Ночь'
+                elif  hour in range(6,12):
+                    hour=u'Утро'
+                elif  hour in range(12,18):
+                    hour=u'День'
+                elif  hour in range(18,24):
+                    hour=u'Вечер'
+            except:
+                print 'can\'t parse'
+                pass
+
+            months=[u'ХЗраля',u'Января',u'Февраля',u'Марта',u'Апреля',u'Мая',u'Июня',u'Июля',u'Августа',u'Сентября',u'Октября',u'Ноября',u'Декабря']
+            weekdays=[u'Нулесенье 8-|',u'Воскресенье',u'Понедельник',u'Вторник',u'Среда',u'Четверг',u'Пятница',u'Суббота',u'Восьмесение О_о']
+            mounth=months[int(mounth)]
+            week=weekdays[int(week)]
+
+            wind=[u'северный',u'северо-восточный',u'восточный',u'юго-восточный',u'южный',u'юго-западный',u'западный',u'северо-западный']
+            sky=[u'ясно',u'малооблачно',u'облачно',u'пасмурно',u'дождь',u'ливень',u'снег',u'снег',u'гроза',u'нет данных',u'без осадков']
+            skys=[u'ясн',u'малоб',u'обл',u'пасм',u'дожд',u'ливен',u'снег',u'снег',u'гроза',u'???',u'б/осад']
+
+            winddir = wind[int(winddir)]
+            clouds=skys[int(cloud)]
+            cloud=sky[int(cloud)]
+            precipitations=skys[int(precipitation)]
+            precipitation=sky[int(precipitation)]
+
+            weather += '\n'+hour+ u' (' +day+ ' ' +mounth+ ', '+week+u'):\n  температура воздуха от '+tempmin+ u' до '+tempmax+u' ('+heatmin+u'-'+heatmax+u')'+u';\n  '+cloud+u', '+precipitation+u';\n  атмосферное давление '+presmin+u'-'+presmax+u'мм.рт.ст.;\n  ветер '+winddir+ u', '+windmin+'-'+windmax+u'м/с;\n  влажность воздуха '+rewmin+'-'+rewmax+u'%;\n'
+            weather_s += '\n'+hour+u' '+tempmin+ u'..'+tempmax+u' ('+heatmin+u'..'+heatmax+u')'+u'; '+cloud+u', '+precipitation
+            weather_sms += '\n'+hour[0]+tempmin+ u'-'+tempmax+u'['+heatmin+u'-'+heatmax+u']'+u';'+clouds+u','+precipitations
+
+        if typ == 'public':
+            return weather_s
+        if typ == 'private':
+            return weather
+        if typ == 'sms': # not used
+            return weather_sms
+        else:
+            return weather
+else:
+    pass
 
 def get_gism(node, short):
     pub = 'public' if short else 'private'

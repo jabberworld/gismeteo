@@ -6,8 +6,11 @@
     <password>superpassword</password>
 
     <cache_ttl>600</cache_ttl>
-    <useproxy>1</useproxy>
+    <useproxy>0</useproxy>
     <proxyaddr>127.0.0.1</proxyaddr>
     <proxyport>54321</proxyport>
+
+    <datasrc>meteonova</datasrc>
+    <datasrc>gismeteo</datasrc>
 </config>
 
