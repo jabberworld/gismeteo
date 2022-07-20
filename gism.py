@@ -251,7 +251,7 @@ class Transport:
                             {
                                 'category':'headline',
                                 'type':'weather',
-                                'name':"Gismeteo Weather Service"
+                                'name':"Jabber Weather Service (from "+datasrc+")"
                                 }],
                         'features':[
                         NS_GATEWAY,
@@ -328,10 +328,10 @@ class Transport:
 
         if str(iq.getTo()) == self.domain:
             query.setTagData(tag='NICKNAME', val='Weather')
-            query.setTagData(tag='FN',       val='Gismeteo.ru Weather Transport')
+            query.setTagData(tag='FN',       val='Jabber Weather Transport')
             query.setTagData(tag='BDAY',     val='2022-07-22')
-            query.setTagData(tag='DESC',     val='Gismeteo.ru weather service')
-            query.setTagData(tag='ROLE',     val='Создаю ботов для получения погоды с gismeteo.ru')
+            query.setTagData(tag='DESC',     val='gismeteo.ru and meteonova.ru weather service')
+            query.setTagData(tag='ROLE',     val='Создаю ботов для получения погоды с '+datasrc)
             query.setTagData(tag='URL',      val='https://github.com/jabberworld/gismeteo')
 
             transav = query.addChild('PHOTO')
@@ -372,7 +372,7 @@ class Transport:
 
     def iq_version_handler(self, iq):
         name = Node('name')
-        name.setData("Gismeteo.ru weather service")
+        name.setData("Jabber Weather Service")
         version = Node('version')
         version.setData(self.version)
 
