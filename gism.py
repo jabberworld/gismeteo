@@ -549,34 +549,35 @@ class Transport:
     def xmpp_presence(self, con, event):
         # Add ACL support
         fromjid = event.getFrom()
-        type = event.getType()
+        typ = event.getType()
         show = event.getShow()
         status = event.getStatus()
         to = event.getTo()
         if re.match(r"^[0-9]{1,5}$", str(to.node.encode("utf-8"))):
             try:
-                print "PRESENCE: ", fromjid, "->", to, type, show
+                print "PRESENCE: ", fromjid, "->", to, typ, show
             except:
                 print "PRESENCE: ERROR"
-            if type == 'subscribe':
+            if typ == 'subscribe':
                 self.jabber.send(Presence(to=fromjid, frm = to, typ = 'subscribe'))
             elif type == 'subscribed':
                 self.jabber.send(Presence(to=fromjid, frm = to, typ = 'subscribed'))
-            elif type == 'unsubscribe':
+            elif typ == 'unsubscribe':
                 self.jabber.send(Presence(to=fromjid, frm = to, typ = 'unsubscribe'))
-            elif type == 'unsubscribed':
+            elif typ == 'unsubscribed':
                 self.jabber.send(Presence(to=fromjid, frm = to, typ = 'unsubscribed'))
-            elif type == 'probe':
-                print "PROBE", self.usr_show(fromjid, type, show)
+            elif typ == 'probe':
+                print "PROBE", self.usr_show(fromjid, typ, show)
                 self.jabber.send(Presence(to=fromjid, frm = to))
-            elif type == 'unavailable':
+            elif typ == 'unavailable':
                 self.jabber.send(Presence(to=fromjid, frm = to, typ = 'unavailable'))
             elif type == 'error':
                 return
             else:
-                wz = self.pres_exec(to, fromjid, type, show)
+                to = JID(str(to)+"/"+datasrc)
+                wz = self.pres_exec(to, fromjid, typ, show)
                 if wz: status=wz
-                self.jabber.send(Presence(to=fromjid, frm = to, typ = type, show=show, status=status))
+                self.jabber.send(Presence(to=fromjid, frm = to, typ = typ, show=show, status=status))
 
     def usr_show(self, jid, type, show):
         if not type and not show:
