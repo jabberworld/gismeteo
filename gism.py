@@ -7,6 +7,7 @@
 # Licence:      GPL v2
 # Requirements:
 #               python-xmpppy - https://github.com/xmpppy/xmpppy
+#               python-feedparser - https://github.com/kurtmckee/feedparser (for Meteonova)
 
 import os
 import signal
