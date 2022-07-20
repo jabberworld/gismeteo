@@ -1,6 +1,6 @@
 ## Gismeteo Jabber Weather Transport
 
-* Транспорт для Jabber (XMPP), позволяющий получать данные о погоде с сайта https://gismeteo.ru. За основу взят транспорт, полученный от jabbercity.ru, который, в свою очередь, базируется на коде mail-transport (https://github.com/xmpppy/mail-transport) и погодном плагине для бота Talisman.
+* Транспорт для Jabber (XMPP), позволяющий получать данные о погоде с сайта https://gismeteo.ru или https://www.meteonova.ru. За основу взят транспорт, полученный от jabbercity.ru, который, в свою очередь, базируется на коде mail-transport (https://github.com/xmpppy/mail-transport) и погодном плагине для бота Talisman.
 
 ## Требования
 
