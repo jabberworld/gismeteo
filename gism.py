@@ -527,16 +527,16 @@ class Transport:
         self.jabber.send(e)
 
     # Disco Handlers
-    def xmpp_base_disco(self, con, event, type):
+    def xmpp_base_disco(self, con, event, typ):
         fromjid = event.getFrom().__str__()
         to = event.getTo()
         node = event.getQuerynode();
         #Type is either 'info' or 'items'
         if to == NAME:
             if node == None:
-                if type == 'info':
+                if typ == 'info':
                     return self.Features
-                if type == 'items':
+                if typ == 'items':
                     return []
             else:
                 self.jabber.send(Error(event,ERR_ITEM_NOT_FOUND))
@@ -560,7 +560,7 @@ class Transport:
                 print "PRESENCE: ERROR"
             if typ == 'subscribe':
                 self.jabber.send(Presence(to=fromjid, frm = to, typ = 'subscribe'))
-            elif type == 'subscribed':
+            elif typ == 'subscribed':
                 self.jabber.send(Presence(to=fromjid, frm = to, typ = 'subscribed'))
             elif typ == 'unsubscribe':
                 self.jabber.send(Presence(to=fromjid, frm = to, typ = 'unsubscribe'))
@@ -571,7 +571,7 @@ class Transport:
                 self.jabber.send(Presence(to=fromjid, frm = to))
             elif typ == 'unavailable':
                 self.jabber.send(Presence(to=fromjid, frm = to, typ = 'unavailable'))
-            elif type == 'error':
+            elif typ == 'error':
                 return
             else:
                 to = JID(str(to)+"/"+datasrc)
@@ -579,35 +579,25 @@ class Transport:
                 if wz: status=wz
                 self.jabber.send(Presence(to=fromjid, frm = to, typ = typ, show=show, status=status))
 
-    def usr_show(self, jid, type, show):
-        if not type and not show:
+    def usr_show(self, jid, typ, show):
+        if not typ and not show:
             show = 'available'
         return show
 
-    def pres_exec(self, tojid, jid, type, show):
-        show = self.usr_show(jid, type, show)
+    def pres_exec(self, tojid, jid, typ, show):
+        show = self.usr_show(jid, typ, show)
         print "PRES EXEC:",
-        print tojid, "->", jid, type, show
+        print tojid, "->", jid, typ, show
         return get_gism(tojid, short=1)
 
     def xmpp_message(self, con, event):
-
-        mtype = event.getType()
         fromjid = event.getFrom()
-        fromstripped = fromjid.getStripped()
         to = event.getTo()
         print "GOT MSG FROM:", fromjid
-        try:
-            if event.getSubject.strip() == '':
-                event.setSubject(None)
-        except AttributeError:
-            pass
-        if event.getBody() == None:
-            return
 
         if to.getNode() != '':
             wz = get_gism(to, short=0)
-            m = Message(to=fromjid,frm = to, body = wz)
+            m = Message(to=fromjid, frm = to, body = wz)
             self.jabber.send(m)
         else:
             pass # this variant is for commands to transport directly
