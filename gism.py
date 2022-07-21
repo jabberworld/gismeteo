@@ -22,8 +22,8 @@ import re
 from xmpp.browser import *
 from xml.parsers import expat
 
-wz_cache = {'public':{}, 'private':{}}
-version = '1.1'
+wz_cache = {}
+version = '1.2'
 
 weatherlogo = 'iVBORw0KGgoAAAANSUhEUgAAACAAAAAgCAMAAABEpIrGAAADAFBMVEUAAAAXlP4Uiv8UkP4Uh/8Uhv8Ujv4LzP4MzP4M0/4Lyv8J5P4Lz/8Lzv8Vjf4Vi/4Vif4Vif4Ujf4Ui/4Uiv4Uj/4Ujf4Uk/4UkP4Tk/4Tkf4TlP4Tlv4Nwv4Nxf4Mxf4MyP4Mxv4LzP4Lyv4Lzf4MzP4L0P4Lz/4Lzv4K1P4K0v4K0f4K0P4ViP4ViP8Uiv8UjP8TjP8Uj/8Tkf8Tk/8Tlv8SmP4SmP8Smv8Rmv8Pmv8RnP8SnP8PnP8dn/E4pNY6pNQgn+4PnP4Rn/8Sn/1WrbnBw0/qyyfsyybJxUdksKoTn/kPnv8Rof8Oof9VsLzq0C7/1Rj/1Rv/1Bvw1kCKyMxoxP9ev/81r/8Tov8Qof8Qo/8apvW9zF7/2yD/2iT/2iP/2iX/5GH/8azy8cvD5/m85f+u4P9qxf8Ypv8Oov8Oo/8Rpv8Opf8zrt/m2j//4Cr/4Cv/517/9b7/9sf79cjM6vK95v+/5/9sx/8zsv8cqv8Ppf8Qpv8QqP8Op/8zsd/n4Eb/5jL/5jP/5zv/9Kj/+dL/+M/8+NHT7fPG6v/H6v/D6f+85v+75v+f3P9Mvv8RqP8Pqv8brfXA22v/7Tf/6zf/7lT/+cv/+9n/+9j2+N7U7/vP7v/Q7v/T7/9Mv/8Nqv8Qrf8NrP9ZwcHt6kr/8Vv/96n/+97//OD9++Ho9fLZ8f/c8v+m4P8ZsP8PrP8Pr/8Pr/xxy8X199D9/Ov9/On6++vu+PTi9P7i9P/j9f/O7v8vuf8Nrv8Osf8Psf8LsP9pzv/s+P3v+fvv+frq+P7q+P/r+P/s+P/V8f8vvP8Msf8PtP8Lsv971f/1+//x+v+05/8Yt/8Os/8Otv8Ltf9Fxv/j9v/2+//z+//0+//3/P/g9f9Qyv8Mtf8OuP8NuP8Quf9o0//P8P/k9v/l9//f9f+46v9QzP8Ouv8Nuv8lwf86x/87x/8zxf8Zvv8Luv8Nvf8MvP8LvP8Nv/4Nv/8Mwf8MxP8Mxv8LyP8My/8Lzf8Kz/4Kz//////VbIFxAAAALXRSTlMAAAAAAAAAAAAAAAAAABdxyPI4vvs42Re9cfrH8fHHx3H6F7042Ti++xdxyPJYUQVDAAABtElEQVR42nzGAxLDUBQAwBeOYydHqG2ljmve/xi18Xe0ABjOsBwfT3yI8xzL4BgAQQqilPxJEgWKAFpWUuk/UopMg6plEDQVdCOLYOhg5pBMsPJIFhSKSAUo3ZUrlXLpG1QvatV6o9lqd075APZVt9cfDEdjx3Vd+w14F34QRpNpNJsvlqv1xnsB24vd/qi4+ITEpOSU1LT0jMys7Gg4YMgBgdy8/ILCgqLiktKy8oryyqqq6praHAhgqAOB+obGpuYWAFPykMAAEAMAMC/vqbZt27aNrfWYItliriMSS6QyuUKhVKk1Wp2AgB4ZjCazxWqzO5wu95tH6fXRgB8FgqFwJBqLJ5JcKp3J4kCO5AvFUrlSrdW5RrPVxoAO6vb6g+FoMJ5MJ2Q2XyxxYEXWG7b9x3b7AwYcyel8ud6+7s++5OGAoSiKAuBZxekg+Hzuv5nYtm3jznayuXzhGihelcqVaq1+12i2iqVroH3T6XR7/bvBcNRpX2H8MJk+jR8wm5NmSC5ISaSWpDQse0WwLTjumuA6CHr+5i/fCyEcYVxsfxKcRcJANCaVNrv9h53RSsajOAJEXzIn7jGAuwAAAABJRU5ErkJggg=='
 
@@ -49,25 +49,32 @@ datasrc   = str(dom.getElementsByTagName("datasrc")[0].childNodes[0].data)
 if useproxy:
     import socks
     import socket
-    socks.setdefaultproxy(socks.PROXY_TYPE_SOCKS5, proxyaddr, proxyport)
-    socket.socket = socks.socksocket
-import urllib2
-
 if datasrc == 'meteonova':
     import feedparser
-    def get_weather_g(kod, typ):
-        kod=str(kod)
-        req = urllib2.Request(u'https://www.meteonova.ru/rss/'+kod+u'.xml')
-        try:
-            r = urllib2.urlopen(req, timeout=10)
-        except:
-            r = None
 
-        d = feedparser.parse(r)
-        bozo = d["bozo"]
+def get_weather(kod, typ):
+    kod=str(kod)
+    weather = ''
+    weather_s = ''
+    if useproxy:
+        socks.setdefaultproxy(socks.PROXY_TYPE_SOCKS5, proxyaddr, proxyport)
+        socket.socket = socks.socksocket
+    import urllib2
 
-        weather = ''
-        weather_s = ''
+    if datasrc == 'meteonova':
+        if (kod in wz_cache) and (time.time() - wz_cache[kod][0] < cache_ttl):
+            d = wz_cache[kod][1]
+            bozo = d["bozo"]
+        else:
+            req = urllib2.Request(u'https://www.meteonova.ru/rss/'+kod+u'.xml')
+            try:
+                r = urllib2.urlopen(req, timeout=10)
+                d = feedparser.parse(r)
+                wz_cache[kod] = {}
+                wz_cache[kod] = time.time(), d
+                bozo = d["bozo"]
+            except:
+                bozo = 1
 
         if bozo == 0:
             for i in d["items"]:
@@ -106,22 +113,20 @@ if datasrc == 'meteonova':
         weather = u'Погода по г. '+city+u' (№'+kod+u'):'+weather
         weather_s = u'Погода по г. '+city+u' (№'+kod+u'):'+weather_s
 
-        if typ == 'public':
-            return weather_s
-        if typ == 'private':
-            return weather
+    elif datasrc == 'gismeteo':
+        if (kod in wz_cache) and (time.time() - wz_cache[kod][0] < cache_ttl):
+            r = wz_cache[kod][1]
         else:
-            return weather
-
-elif datasrc == 'gismeteo':
-    def get_weather_g(kod, typ):
-
-        kod=str(kod)
-        req = urllib2.Request(u'http://informer.gismeteo.ru/xml/'+kod+u'_1.xml',headers={'User-agent': 'Mozilla/4.0 (compatible; MSIE 5.01; Windows NT 5.0)'})
-        try:
-            r = urllib2.urlopen(req, timeout=10)
-        except:
-            r = None
+            req = urllib2.Request(u'http://informer.gismeteo.ru/xml/'+kod+u'_1.xml', headers={'User-agent': 'Mozilla/4.0 (compatible; MSIE 5.01; Windows NT 5.0)'})
+            try:
+                r = urllib2.urlopen(req, timeout=10)
+                r = r.read()
+                if not r:
+                    return 'Fetching weather error'
+                wz_cache[kod] = {}
+                wz_cache[kod] = time.time(), r
+            except:
+                return 'Fetching weather error'
 
         global embedd
         embedd=0
@@ -148,7 +153,7 @@ elif datasrc == 'gismeteo':
         p.StartElementHandler = start_element
         p.EndElementHandler = end_element
         try:
-            p.ParseFile(r)
+            p.Parse(r)
         except:
             return None
 
@@ -156,7 +161,6 @@ elif datasrc == 'gismeteo':
 
         weather = u'Погода по г. '+cityname+u' (№'+kod+u'):'
         weather_s = u'Погода по г. '+cityname+u' (№'+kod+u'):'
-        weather_sms =u'№'+kod+u':'
         for period in wz:
             pr=wz[period]
     #         print pr.keys()
@@ -211,32 +215,24 @@ elif datasrc == 'gismeteo':
 
             weather += '\n'+hour+ u' (' +day+ ' ' +mounth+ ', '+week+u'):\n  температура воздуха от '+tempmin+ u' до '+tempmax+u' ('+heatmin+u'-'+heatmax+u')'+u';\n  '+cloud+u', '+precipitation+u';\n  атмосферное давление '+presmin+u'-'+presmax+u'мм.рт.ст.;\n  ветер '+winddir+ u', '+windmin+'-'+windmax+u'м/с;\n  влажность воздуха '+rewmin+'-'+rewmax+u'%;\n'
             weather_s += '\n'+hour+u' '+tempmin+ u'..'+tempmax+u' ('+heatmin+u'..'+heatmax+u')'+u'; '+cloud+u', '+precipitation
-            weather_sms += '\n'+hour[0]+tempmin+ u'-'+tempmax+u'['+heatmin+u'-'+heatmax+u']'+u';'+clouds+u','+precipitations
 
-        if typ == 'public':
-            return weather_s
-        if typ == 'private':
-            return weather
-        if typ == 'sms': # not used
-            return weather_sms
-        else:
-            return weather
-else:
-    pass
+    else:
+        return 'Unknown datasource'
 
-def get_gism(node, short):
-    pub = 'public' if short else 'private'
+    if typ == 'short':
+        return weather_s
+    if typ == 'long':
+        return weather
+    else:
+        return weather
+
+def get_gism(node, typ):
     try:
         code = int(unicode(node).split('@')[0])
     except:
         print "can't get code for node", unicode(node)
         return None
-    if (code in wz_cache[pub]) and (time.time() - wz_cache[pub][code][0] < cache_ttl):
-            wz = wz_cache[pub][code][1]
-    else:
-            wz_cache[pub][code] = time.time(), get_weather_g(code,pub)
-
-    return wz_cache[pub][code][1]
+    return get_weather(code, typ)
 
 class Transport:
     online = 1
@@ -556,6 +552,7 @@ class Transport:
         status = event.getStatus()
         to = event.getTo()
         if re.match(r"^[0-9]{1,5}$", str(to.node.encode("utf-8"))):
+            to = JID(str(to)+"/"+datasrc)
             try:
                 print "PRESENCE: ", fromjid, "->", to, typ, show
             except:
@@ -576,7 +573,6 @@ class Transport:
             elif typ == 'error':
                 return
             else:
-                to = JID(str(to)+"/"+datasrc)
                 wz = self.pres_exec(to, fromjid, typ, show)
                 if wz: status=wz
                 self.jabber.send(Presence(to=fromjid, frm = to, typ = typ, show=show, status=status))
@@ -590,7 +586,7 @@ class Transport:
         show = self.usr_show(jid, typ, show)
         print "PRES EXEC:",
         print tojid, "->", jid, typ, show
-        return get_gism(tojid, short=1)
+        return get_gism(tojid, 'short')
 
     def xmpp_message(self, con, event):
         fromjid = event.getFrom()
@@ -598,7 +594,7 @@ class Transport:
         print "GOT MSG FROM:", fromjid
 
         if to.getNode() != '':
-            wz = get_gism(to, short=0)
+            wz = get_gism(to, 'long')
             m = Message(to=fromjid, frm = to, body = wz)
             self.jabber.send(m)
         else:
