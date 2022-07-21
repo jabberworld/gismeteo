@@ -49,17 +49,20 @@ datasrc   = str(dom.getElementsByTagName("datasrc")[0].childNodes[0].data)
 if useproxy:
     import socks
     import socket
+else:
+    import urllib2
+
 if datasrc == 'meteonova':
     import feedparser
 
 def get_weather(kod, typ):
-    kod=str(kod)
+    kod = str(kod)
     weather = ''
     weather_s = ''
     if useproxy:
         socks.setdefaultproxy(socks.PROXY_TYPE_SOCKS5, proxyaddr, proxyport)
         socket.socket = socks.socksocket
-    import urllib2
+        import urllib2
 
     if datasrc == 'meteonova':
         if (kod in wz_cache) and (time.time() - wz_cache[kod][0] < cache_ttl):
