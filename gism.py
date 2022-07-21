@@ -552,7 +552,7 @@ class Transport:
         status = event.getStatus()
         to = event.getTo()
         if re.match(r"^[0-9]{1,5}$", str(to.node.encode("utf-8"))):
-            to = JID(str(to)+"/"+datasrc)
+            fto = JID(str(to)+"/"+datasrc)
             try:
                 print "PRESENCE: ", fromjid, "->", to, typ, show
             except:
@@ -567,15 +567,15 @@ class Transport:
                 self.jabber.send(Presence(to=fromjid, frm = to, typ = 'unsubscribed'))
             elif typ == 'probe':
                 print "PROBE", self.usr_show(fromjid, typ, show)
-                self.jabber.send(Presence(to=fromjid, frm = to))
+                self.jabber.send(Presence(to=fromjid, frm = fto))
             elif typ == 'unavailable':
                 self.jabber.send(Presence(to=fromjid, frm = to, typ = 'unavailable'))
             elif typ == 'error':
                 return
             else:
-                wz = self.pres_exec(to, fromjid, typ, show)
+                wz = self.pres_exec(fto, fromjid, typ, show)
                 if wz: status=wz
-                self.jabber.send(Presence(to=fromjid, frm = to, typ = typ, show=show, status=status))
+                self.jabber.send(Presence(to=fromjid, frm = fto, typ = typ, show=show, status=status))
 
     def usr_show(self, jid, typ, show):
         if not typ and not show:
