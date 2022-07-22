@@ -2,7 +2,7 @@
 # -*- coding: utf-8 -*-
 #
 #               Python based Jabber Weather transport.
-# Copyright:	Initial version - based on code of mail transport (https://github.com/xmpppy/mail-transport) + pogoda_plugin.py from Talisman bot
+# Copyright:	Initial version - based on code of mail transport (https://github.com/xmpppy/mail-transport) + pogoda_g_plugin.py from Talisman bot
 #               2022 rain from JabberWorld. JID: rain@jabberworld.info
 # Licence:      GPL v2
 # Requirements:
@@ -49,9 +49,6 @@ datasrc   = str(dom.getElementsByTagName("datasrc")[0].childNodes[0].data)
 if useproxy:
     import socks
     import socket
-else:
-    import urllib2
-
 if datasrc == 'meteonova':
     import feedparser
 
@@ -62,7 +59,7 @@ def get_weather(kod, typ):
     if useproxy:
         socks.setdefaultproxy(socks.PROXY_TYPE_SOCKS5, proxyaddr, proxyport)
         socket.socket = socks.socksocket
-        import urllib2
+    import urllib2
 
     if datasrc == 'meteonova':
         if (kod in wz_cache) and (time.time() - wz_cache[kod][0] < cache_ttl):
